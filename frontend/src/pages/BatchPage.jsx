@@ -7,15 +7,16 @@ export default function BatchPage() {
   const [file, setFile] = useState(null)
   const [rows, setRows] = useState(state?.preloadResults || [])
   const [csvBase64, setCsvBase64] = useState(state?.preloadCsvBase64 || '')
-  const [sortBy, setSortBy] = useState('confidence')
+  const [sortBy, setSortBy] = useState('confidence_asc')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const sortedRows = useMemo(() => {
     return [...rows].sort((a, b) => {
-      const av = a[sortBy] ?? -1
-      const bv = b[sortBy] ?? -1
-      return bv > av ? 1 : -1
+      if (sortBy === 'confidence_asc') return (a.confidence ?? 1) - (b.confidence ?? 1)
+      if (sortBy === 'uncertainty_desc') return (b.uncertainty_combined ?? -1) - (a.uncertainty_combined ?? -1)
+      if (sortBy === 'score_desc') return (b.intensity_score ?? -1) - (a.intensity_score ?? -1)
+      return 0
     })
   }, [rows, sortBy])
 
@@ -98,8 +99,9 @@ export default function BatchPage() {
             onChange={(e) => setSortBy(e.target.value)}
             className="input-dark cursor-pointer"
           >
-            <option value="confidence">Sort by confidence</option>
-            <option value="intensity_score">Sort by score</option>
+            <option value="confidence_asc">Sort by confidence (lowest first)</option>
+            <option value="uncertainty_desc">Sort by uncertainty (highest first)</option>
+            <option value="score_desc">Sort by score</option>
           </select>
         </div>
 
@@ -123,7 +125,7 @@ export default function BatchPage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr style={{ background: 'rgba(212,178,140,0.05)', borderBottom: '1px solid rgba(212,178,140,0.08)' }}>
-                {['Filename', 'Tissue', 'Score', 'Confidence', 'Needs Review'].map((h) => (
+                {['Filename', 'Tissue', 'Score', 'Confidence', 'Flag for review'].map((h) => (
                   <th
                     key={h}
                     className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-widest"
@@ -164,7 +166,7 @@ export default function BatchPage() {
                       )}
                     </td>
                     <td className="px-5 py-3.5">
-                      {r.needs_review ? (
+                      {r.flag_for_review || r.needs_review ? (
                         <span
                           className="inline-block rounded-md px-2.5 py-0.5 text-xs font-semibold"
                           style={{

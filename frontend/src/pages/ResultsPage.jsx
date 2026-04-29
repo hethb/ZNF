@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import MetricsGlossary from '../components/MetricsGlossary'
 import ScoreBadge from '../components/ScoreBadge'
+import { submitFeedback } from '../services/api'
 
 const INTENSITY_LABELS_SHORT = ['0', '1+', '2+', '3+']
 
@@ -42,6 +43,34 @@ export default function ResultsPage() {
   const uncertaintyPct = Math.min(100, Math.round(Number(uncertaintyCombined) * 100))
   const confidencePct = Math.round((result.confidence || 0) * 100)
   const stainBurden = result.stain_burden_0_100
+  const [correctedScore, setCorrectedScore] = useState('')
+  const [feedbackNote, setFeedbackNote] = useState('')
+  const [feedbackSaved, setFeedbackSaved] = useState(false)
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [feedbackError, setFeedbackError] = useState('')
+
+  const onSubmitFeedback = async () => {
+    if (correctedScore === '') return
+    setFeedbackError('')
+    setFeedbackLoading(true)
+    try {
+      await submitFeedback({
+        predicted_intensity_score: Number(result.intensity_score),
+        corrected_intensity_score: Number(correctedScore),
+        confidence: Number(result.confidence || 0),
+        uncertainty_combined: Number(result.uncertainty_combined || 0),
+        tissue_type: result.tissue_type || '',
+        note: feedbackNote || '',
+        image_name: 'uploaded_result',
+        source: 'results_page'
+      })
+      setFeedbackSaved(true)
+    } catch (e) {
+      setFeedbackError(e?.response?.data?.detail || 'Could not save feedback.')
+    } finally {
+      setFeedbackLoading(false)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-16 pt-28">
@@ -100,8 +129,7 @@ export default function ResultsPage() {
               }}
             >
               <span className="font-semibold">ROI context.</span>{' '}
-              Tissue map is non-tumor ({result.tissue_type}). Stain readout still quantifies this patch—use
-              it alongside tumor-rich regions for biomarker workflows (e.g. CPS, TILs).
+              {result.no_tumor_guidance || `No tumor tissue detected in this patch (${result.tissue_type}). Try selecting a tumor-rich ROI and rerun analysis.`}
             </div>
           )}
 
@@ -265,6 +293,45 @@ export default function ResultsPage() {
                 </div>
               </>
             )}
+          </div>
+
+          {/* Pathologist feedback loop */}
+          <div
+            className="space-y-3 rounded-xl p-4 text-sm"
+            style={{ background: 'rgba(212,178,140,0.04)', border: '1px solid rgba(212,178,140,0.08)' }}
+          >
+            <p className="section-label">Disagree with this score?</p>
+            <p style={{ color: '#a08060' }}>
+              Save a correction to build a pilot training set (logged to backend CSV).
+            </p>
+            <div className="flex items-center gap-2">
+              <select
+                value={correctedScore}
+                onChange={(e) => setCorrectedScore(e.target.value)}
+                className="input-dark cursor-pointer"
+              >
+                <option value="">Correct score…</option>
+                <option value="0">0</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+              </select>
+              <button
+                type="button"
+                onClick={onSubmitFeedback}
+                disabled={feedbackLoading || correctedScore === '' || feedbackSaved}
+                className="btn-ghost px-3 py-1.5 text-xs disabled:opacity-40"
+              >
+                {feedbackSaved ? 'Saved' : feedbackLoading ? 'Saving…' : 'Save correction'}
+              </button>
+            </div>
+            <textarea
+              value={feedbackNote}
+              onChange={(e) => setFeedbackNote(e.target.value)}
+              placeholder="Optional note (artifact, edge effect, staining issue...)"
+              className="input-dark min-h-20 w-full resize-y"
+            />
+            {feedbackError && <p style={{ color: '#f0a090' }}>{feedbackError}</p>}
           </div>
         </section>
       </div>

@@ -35,6 +35,8 @@ cd frontend && npm install && npm run dev
 
 `bootstrap_minimal_demo.py` builds a tiny synthetic dataset and trains `.keras` checkpoints so the app runs from a fresh clone. **This is demo infrastructure, not model validation.** Replace with a public HER2/IHC cohort before investor claims.
 
+For real-data training, use `scripts/train_public_her2.py` with a manifest CSV (see dataset doc).
+
 ---
 
 ## Tech stack (second in the pitch deck)
@@ -55,6 +57,7 @@ The linked [gist](https://gist.github.com/hethb/8dc94ff3fb3cc1ca911bd766000d5c7e
 ## Pre-fundraise checklist (high priority)
 
 - [ ] Train and ship **real** weights from a public IHC cohort (recommended first target: TUPAC16/HER2-style labels).
+- [ ] Manually review **20–30 Grad-CAM overlays** on real slides and verify activations are anatomically sensible.
 - [ ] Capture one pathologist usage signal (email/quote/LOI) and paste into `BUSINESS.md`.
 - [ ] Rename repo from `ZNF` to `pathiq` in GitHub settings before sharing investor links.
 

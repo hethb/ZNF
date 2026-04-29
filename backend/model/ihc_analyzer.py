@@ -179,7 +179,12 @@ class IHCAnalyzer:
         uncertainty = float(std_pred[idx])
         return idx, confidence, uncertainty, mean_pred
 
-    def analyze(self, image: Image.Image) -> PredictionResult:
+    def analyze(
+        self,
+        image: Image.Image,
+        uncertainty_std_threshold: float = 0.14,
+        entropy_norm_threshold: float = 0.62,
+    ) -> PredictionResult:
         if self.tissue_model is None:
             raise RuntimeError("Tissue model is not loaded.")
         if self.intensity_model is None:
@@ -206,7 +211,9 @@ class IHCAnalyzer:
         entropy_norm = ent / max_ent if max_ent > 0 else 0.0
         uncertainty_combined = float(max(std, entropy_norm))
         # MC std when dropout is active; high entropy_norm flags truly flat softmax.
-        needs_review = (std > 0.14) or (entropy_norm > 0.62)
+        needs_review = (std > float(uncertainty_std_threshold)) or (
+            entropy_norm > float(entropy_norm_threshold)
+        )
 
         return PredictionResult(
             tissue_type=tissue_type,

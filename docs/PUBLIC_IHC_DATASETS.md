@@ -46,3 +46,28 @@ You can **merge** rare classes into `complex` or `empty` if your public set does
 3. Save artifacts to `backend/model/artifacts/` and record **n, label distribution, and kappa** in the README.
 
 This directly answers “can I try it on something real?” better than synthetic pink noise.
+
+---
+
+## Training scaffold in this repo
+
+Use `scripts/train_public_her2.py` with a simple manifest CSV:
+
+```csv
+image_path,label,tissue_label
+patches/case01_roi01.png,2+,tumor
+patches/case01_roi02.png,1+,stroma
+```
+
+Run:
+
+```bash
+source backend/.venv/bin/activate
+python scripts/train_public_her2.py \
+  --manifest_csv /absolute/path/to/manifest.csv \
+  --source_root /absolute/path/to/dataset_root \
+  --staging_dir data/public_her2_staged \
+  --artifacts backend/model/artifacts
+```
+
+This stages data into PathIQ folder layout and launches `train.py` (and `train_tissue.py` if `tissue_label` is provided).
