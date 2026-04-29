@@ -1,76 +1,80 @@
-# PathIQ MVP
+# PathIQ
 
-PathIQ is an AI-powered immunohistochemistry (IHC) slide analysis prototype designed to help pathologists reduce manual 0/1+/2+/3+ intensity scoring time using transfer-learned CNNs, uncertainty-aware predictions, and Grad-CAM visual explanations in a clinical-style web workflow.
+**Problem first:** pathology labs are drowning in **IHC and digital slide volume** while pathologist capacity lags demand in many markets. Manual 0/1+/2+/3+ scoring is slow, variable between readers, and does not scale with biomarker panel growth. **PathIQ** is decision-support software: tissue-aware patch scoring, uncertainty, and Grad-CAM-style overlays so experts spend time on judgment, not pixel counting.
 
-## Backend Setup (FastAPI)
+**Origin story (not the product boundary):** the stack is grounded in published research on **ZNF835**, gene regulation, and **AI-enhanced IHC**—then **generalized to any biomarker** the lab runs.
+
+**Business, pricing sketch, GTM, regulatory framing, and pathologist LOI template:** see **[BUSINESS.md](./BUSINESS.md)** (YC-oriented outline; validate numbers and claims before fundraising).
+
+**Public data for a “real” demo:** see **[docs/PUBLIC_IHC_DATASETS.md](./docs/PUBLIC_IHC_DATASETS.md)** (HER2 challenges, H&E patch corpora, TCGA/TCIA pointers). **Ship a live demo before perfect copy:** run the bootstrap script below, open **`/demo`** in the UI, record a 90-second Loom.
+
+---
+
+## Try it in two minutes (synthetic weights, end-to-end)
+
+Model artifacts are **gitignored**. After clone, from the **repository root**:
 
 ```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
+cd backend && python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cd ..
+python scripts/bootstrap_minimal_demo.py
 uvicorn backend.api:app --reload
 ```
 
-Backend runs at `http://127.0.0.1:8000`.
-
-## Frontend Setup (React + Tailwind)
+In another terminal:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+cd frontend && npm install && npm run dev
 ```
 
-Frontend runs at `http://127.0.0.1:5173` by default.
+- API: `http://127.0.0.1:8000` (docs at `/docs`)
+- UI: `http://127.0.0.1:5173` — use **`/demo`** for four preloaded patches (no upload), or **`/analyze`** for your own JPG/PNG.
 
-## Model Training
+`bootstrap_minimal_demo.py` builds a tiny synthetic dataset and trains **real** `.keras` checkpoints so partners can click the product. **Replace with public IHC labels** before clinical or investor claims.
 
-1. Arrange your dataset as:
-   - `data/0_negative/`
-   - `data/1_weak/`
-   - `data/2_moderate/`
-   - `data/3_strong/`
-2. Train intensity model:
+---
 
-```bash
-python -m backend.model.train --data_dir data --output_dir backend/model/artifacts --epochs 25
-```
+## Tech stack (second in the pitch deck)
 
-3. Train tissue classifier model (required by `/analyze` and `/batch`):
+- **Backend:** FastAPI — `GET /health`, `POST /analyze`, `POST /batch`
+- **Models:** MobileNetV2 heads, Monte Carlo dropout uncertainty, Grad-CAM-style maps (see `backend/utils/gradcam.py`)
+- **Training:** `python -m backend.model.train`, `python -m backend.model.train_tissue` (clinical metrics, confusion matrix export)
 
-```bash
-python -m backend.model.train_tissue --data_dir data/tissue --output_dir backend/model/artifacts --epochs 20
-```
+Dataset layout for your own labels:
 
-Training artifacts:
-- `backend/model/artifacts/best_intensity_model.keras`
-- `backend/model/artifacts/best_tissue_model.keras`
-- `backend/model/artifacts/training_curves.png`
-- `backend/model/artifacts/confusion_matrix.png`
-- `backend/model/artifacts/classification_report.txt`
+- Intensity: `data/0_negative/`, `data/1_weak/`, `data/2_moderate/`, `data/3_strong/`
+- Tissue: `data/tissue/<tumor|stroma|...>/`
 
-Clinical metrics tracked per epoch:
-- Exact agreement (%)
-- Within-1 agreement (%)
-- Weighted linear Cohen's kappa
+### Reference notebook (gist)
 
-## Single-image Inference via curl
+The linked [gist](https://gist.github.com/hethb/8dc94ff3fb3cc1ca911bd766000d5c7e) is a **tabular** sklearn teaching notebook (not IHC images). It is useful for **metrics literacy**; patch training entry points are the `backend.model.*` modules above.
+
+---
+
+## Regulatory (investor table stakes — not legal advice)
+
+PathIQ is positioned as **clinical decision support**, not a standalone diagnostic. For U.S. commercialization, **device classification and CDS policy** depend on exact indications, UX, and labeling; many imaging products pursue **510(k)** when they qualify as devices. **Engage FDA-qualified regulatory counsel** early; timelines are **order-of-magnitude** (often discussed as ~12–18 months for moderate-risk 510(k) programs vs multi-year PMA-class work for novel Class III diagnostics). Do not ship to patients based on this README alone.
+
+---
+
+## curl
 
 ```bash
+curl -s http://127.0.0.1:8000/health
 curl -X POST "http://127.0.0.1:8000/analyze" \
-  -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
   -F "image=@/absolute/path/to/slide.png"
 ```
 
-## API Endpoints
+---
 
-- `GET /health` - model health/version
-- `POST /analyze` - single image pipeline (tissue classification -> intensity + MC dropout confidence + Grad-CAM)
-- `POST /batch` - ZIP batch analysis with CSV-exportable summary payload
+## Demo assets
 
-## Clinical Validation Status
+- **`frontend/public/demo/slide1.png` … `slide4.png`** — generated via `python scripts/generate_synthetic_patch.py` (committed for static hosting). Re-run bootstrap to refresh from training patches if desired.
 
-This software is a research prototype for exploratory and educational use only. It is **not** FDA-cleared, is **not** validated for clinical diagnosis, and must not be used as a standalone medical decision system.
+---
+
+## Status
+
+Research / educational prototype. **Not FDA-cleared.** Not validated for clinical diagnosis. Use only with appropriate oversight and labeling.

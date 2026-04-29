@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 const features = [
   {
     num: '01',
-    title: 'Tumor-first scoring pipeline',
-    text: 'Every slide is tissue-classified before intensity scoring to avoid inappropriate calls on non-tumor regions.'
+    title: 'Tissue-aware + stain readout',
+    text: 'Tissue class adds clinical context while patch-level stain quantification and Grad-CAM still run—so stroma-rich or mixed ROIs stay interpretable.'
   },
   {
     num: '02',
@@ -125,11 +125,17 @@ export default function LandingPage() {
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed" style={{ color: '#c4ad92' }}>
             PathIQ gives pathologists a fast, interpretable AI-native workflow for tissue recognition,
-            intensity scoring, uncertainty triage, and visual validation.
+            intensity scoring, uncertainty triage, and visual validation—generalizing methods first
+            explored in research on{' '}
+            <span className="font-medium" style={{ color: '#e8d4c4' }}>ZNF835</span>, IHC quantification,
+            and CNN-based histology.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Link to="/analyze" className="btn-primary px-8 py-3 text-[0.9rem]">
+            <Link to="/demo" className="btn-primary px-8 py-3 text-[0.9rem]">
+              Live demo (no upload)
+            </Link>
+            <Link to="/analyze" className="btn-ghost px-8 py-3 text-[0.9rem]">
               Analyze a Slide →
             </Link>
             <Link to="/batch" className="btn-ghost px-8 py-3 text-[0.9rem]">
@@ -167,6 +173,34 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Research lineage ───────────────────────────────────────────────── */}
+      <section className="relative z-10 mx-auto mt-16 max-w-5xl px-4">
+        <div
+          className="glass-card px-6 py-8 md:px-10 md:py-9"
+          style={{ borderColor: 'rgba(138,153,98,0.2)' }}
+        >
+          <p className="section-label mb-2 block" style={{ color: '#8a9962' }}>
+            Research lineage
+          </p>
+          <p className="text-base leading-relaxed md:text-lg" style={{ color: '#c4ad92' }}>
+            PathIQ’s architecture—transfer-learned CNNs on IHC patches, categorical stain readouts,
+            confusion-matrix–driven training hygiene, and emphasis on reproducible image
+            pipelines—extends the computational and bioinformatics direction laid out in{' '}
+            <cite className="font-semibold not-italic" style={{ color: '#f4ece0' }}>
+              Exploring the Oncogenic Potential of Zinc Finger Protein 835 (ZNF835) in Cancer
+            </cite>
+            {' '}(Heth J. Bhatt), bridging gene-level rationale (e.g. chromosomal context, Pol&nbsp;II–linked
+            regulation) with slide-scale AI assistance. The product is now marker-agnostic; the paper
+            remains the scientific through-line.
+          </p>
+          <p className="mt-4 text-sm" style={{ color: '#7a6b59' }}>
+            <Link to="/about" className="font-semibold underline underline-offset-2" style={{ color: '#d9834a' }}>
+              Read the full story on About →
+            </Link>
+          </p>
+        </div>
+      </section>
+
       {/* ── CTA strip ──────────────────────────────────────────────────────── */}
       <section className="relative z-10 mx-auto mt-16 max-w-5xl px-4">
         <div className="glass-card relative overflow-hidden px-8 py-12 text-center">
@@ -182,10 +216,11 @@ export default function LandingPage() {
             Ready to score your first slide?
           </h2>
           <p className="relative mx-auto mt-3 max-w-md text-sm" style={{ color: '#a08060' }}>
-            Upload a single JPG/PNG or a ZIP batch. Results arrive in seconds.
+            Try <Link to="/demo" className="font-semibold underline underline-offset-2" style={{ color: '#d9834a' }}>Live demo</Link> with no upload, or bring your own JPG/PNG or ZIP batch.
           </p>
           <div className="relative mt-7 flex flex-wrap justify-center gap-4">
-            <Link to="/analyze" className="btn-primary">Analyze a Slide →</Link>
+            <Link to="/demo" className="btn-primary">Live demo</Link>
+            <Link to="/analyze" className="btn-ghost">Analyze a Slide →</Link>
             <Link to="/batch" className="btn-ghost">Batch Workflow</Link>
           </div>
         </div>

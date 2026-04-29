@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -34,10 +35,18 @@ TISSUE_CLASSES: List[str] = [
 class PredictionResult:
     tissue_type: str
     tissue_confidence: float
-    intensity_score: Optional[int]
-    intensity_label: Optional[str]
+    intensity_score: int
+    intensity_label: str
     confidence: float
     uncertainty_std: float
+    """MC dropout std of the predicted class probability (can be 0 if dropout inactive)."""
+    uncertainty_combined: float
+    """max(MC std, normalized entropy) on ~0–1 scale for triage UI."""
+    prediction_entropy: float
+    intensity_probabilities: Tuple[float, float, float, float]
+    stain_burden_0_100: float
+    """Continuous stain burden: weighted class expectation scaled to 0–100 (unique readout)."""
+    non_tumor_context: bool
     needs_review: bool
 
 
@@ -104,8 +113,6 @@ class IHCAnalyzer:
         self.version = version
         self.intensity_model = self._load_model_if_exists(intensity_model_path)
         self.tissue_model = self._load_model_if_exists(tissue_model_path)
-        self.tumor_gate_threshold = 0.45
-        self.tumor_margin_override = 0.12
 
     @staticmethod
     def _build_mobilenet_head(num_classes: int, dropout_rate: float = 0.35) -> tf.keras.Model:
@@ -152,7 +159,9 @@ class IHCAnalyzer:
         idx = int(np.argmax(pred))
         return TISSUE_CLASSES[idx], float(pred[idx])
 
-    def predict_intensity_with_uncertainty(self, image: Image.Image, runs: int = 10) -> Tuple[int, float, float]:
+    def predict_intensity_with_uncertainty(
+        self, image: Image.Image, runs: int = 16
+    ) -> Tuple[int, float, float, np.ndarray]:
         if self.intensity_model is None:
             raise RuntimeError("Intensity model is not loaded.")
         x = preprocess_pil_image(image)
@@ -168,47 +177,37 @@ class IHCAnalyzer:
         idx = int(np.argmax(mean_pred))
         confidence = float(mean_pred[idx])
         uncertainty = float(std_pred[idx])
-        return idx, confidence, uncertainty
-
-    def _should_run_intensity(
-        self,
-        top_tissue_idx: int,
-        top_tissue_conf: float,
-        tumor_conf: float,
-    ) -> bool:
-        # Run intensity if tumor wins, tumor probability is strong enough, or
-        # tumor is close to the top class (uncertain tissue classifier case).
-        if top_tissue_idx == 0:
-            return True
-        if tumor_conf >= self.tumor_gate_threshold:
-            return True
-        return (top_tissue_conf - tumor_conf) <= self.tumor_margin_override
+        return idx, confidence, uncertainty, mean_pred
 
     def analyze(self, image: Image.Image) -> PredictionResult:
         if self.tissue_model is None:
             raise RuntimeError("Tissue model is not loaded.")
+        if self.intensity_model is None:
+            raise RuntimeError("Intensity model is not loaded.")
 
         x = preprocess_pil_image(image)
         tissue_probs = self.tissue_model.predict(x, verbose=0)[0]
         top_idx = int(np.argmax(tissue_probs))
         top_conf = float(tissue_probs[top_idx])
         tissue_type = TISSUE_CLASSES[top_idx]
-        tumor_conf = float(tissue_probs[0])
+        non_tumor_context = top_idx != 0
 
-        if not self._should_run_intensity(top_idx, top_conf, tumor_conf):
-            return PredictionResult(
-                tissue_type=tissue_type,
-                tissue_confidence=top_conf,
-                intensity_score=None,
-                intensity_label=None,
-                confidence=tumor_conf,
-                uncertainty_std=0.0,
-                needs_review=True,
-            )
+        # Always quantify stain on the patch (biomarker-agnostic lab workflow). Tissue class
+        # is context for interpretation, not a hard block on scoring or Grad-CAM.
+        score, confidence, std, mean_pred = self.predict_intensity_with_uncertainty(image, runs=16)
+        probs = tuple(float(x) for x in mean_pred.tolist())
+        stain_burden = float(
+            100.0
+            * sum(i * mean_pred[i] for i in range(4))
+            / 3.0
+        )
+        ent = float(-np.sum(mean_pred * np.log(mean_pred + 1e-8)))
+        max_ent = math.log(float(len(mean_pred)))
+        entropy_norm = ent / max_ent if max_ent > 0 else 0.0
+        uncertainty_combined = float(max(std, entropy_norm))
+        # MC std when dropout is active; high entropy_norm flags truly flat softmax.
+        needs_review = (std > 0.14) or (entropy_norm > 0.62)
 
-        score, confidence, std = self.predict_intensity_with_uncertainty(image, runs=10)
-        # Mark review when tissue classifier did not confidently call tumor.
-        tissue_gate_uncertain = top_idx != 0
         return PredictionResult(
             tissue_type=tissue_type,
             tissue_confidence=top_conf,
@@ -216,5 +215,10 @@ class IHCAnalyzer:
             intensity_label=INTENSITY_LABELS[score],
             confidence=confidence,
             uncertainty_std=std,
-            needs_review=(std > 0.15) or tissue_gate_uncertain,
+            uncertainty_combined=uncertainty_combined,
+            prediction_entropy=ent,
+            intensity_probabilities=probs,
+            stain_burden_0_100=stain_burden,
+            non_tumor_context=non_tumor_context,
+            needs_review=needs_review,
         )

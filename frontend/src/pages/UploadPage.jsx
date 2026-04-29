@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import MetricsGlossary from '../components/MetricsGlossary'
 import { analyzeBatch, analyzeImage } from '../services/api'
 
 export default function UploadPage() {
@@ -173,6 +174,13 @@ export default function UploadPage() {
           )}
         </section>
       </div>
+
+      <MetricsGlossary
+        className="mt-8"
+        eyebrow="After you analyze"
+        headingId="analyze-metrics-heading"
+        lead="Results open on the next screen. Here is how to read each part—everything is decision-support for the pathologist, not a standalone diagnosis."
+      />
     </div>
   )
 }

@@ -8,7 +8,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import tensorflow as tf
-from sklearn.metrics import classification_report, cohen_kappa_score, confusion_matrix
+from sklearn.metrics import (
+    classification_report,
+    cohen_kappa_score,
+    confusion_matrix,
+    precision_recall_fscore_support,
+)
 from sklearn.model_selection import train_test_split
 
 from backend.model.ihc_analyzer import DataGenerator
@@ -97,9 +102,17 @@ def evaluate_and_export(model: tf.keras.Model, test_gen: DataGenerator, output_d
     plt.close()
 
     report = classification_report(y_true_np, y_pred_np, digits=3)
+    prec_m, rec_m, f1_m, _ = precision_recall_fscore_support(
+        y_true_np, y_pred_np, average="macro", zero_division=0
+    )
+    macro_block = (
+        f"\nMacro (unweighted class mean): precision={prec_m:.4f}, "
+        f"recall={rec_m:.4f}, f1={f1_m:.4f}\n"
+    )
     print("\nHeld-out test classification report:\n")
     print(report)
-    (output_dir / "classification_report.txt").write_text(report)
+    print(macro_block)
+    (output_dir / "classification_report.txt").write_text(report + macro_block)
 
 
 def build_model() -> tf.keras.Model:

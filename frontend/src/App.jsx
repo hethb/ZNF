@@ -6,6 +6,7 @@ import UploadPage from './pages/UploadPage'
 import ResultsPage from './pages/ResultsPage'
 import BatchPage from './pages/BatchPage'
 import AboutPage from './pages/AboutPage'
+import DemoPage from './pages/DemoPage'
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
             <Route path="/results" element={<ResultsPage />} />
             <Route path="/batch" element={<BatchPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/demo" element={<DemoPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

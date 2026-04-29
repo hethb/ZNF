@@ -1,12 +1,23 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import MetricsGlossary from '../components/MetricsGlossary'
 import ScoreBadge from '../components/ScoreBadge'
+
+const INTENSITY_LABELS_SHORT = ['0', '1+', '2+', '3+']
 
 export default function ResultsPage() {
   const { state } = useLocation()
+  const result = state?.result
+  const preview = state?.preview
+  const heatmapSrc = result?.heatmap_base64 ? `data:image/png;base64,${result.heatmap_base64}` : ''
   const [showHeatmap, setShowHeatmap] = useState(true)
 
-  if (!state?.result) {
+  const imgSrc = useMemo(() => {
+    if (showHeatmap && heatmapSrc) return heatmapSrc
+    return preview || ''
+  }, [showHeatmap, heatmapSrc, preview])
+
+  if (!result) {
     return (
       <div className="mx-auto max-w-5xl px-4 pt-28">
         <div className="glass-card p-8 text-center">
@@ -26,9 +37,11 @@ export default function ResultsPage() {
     )
   }
 
-  const { result, preview } = state
-  const heatmapSrc = result.heatmap_base64 ? `data:image/png;base64,${result.heatmap_base64}` : ''
+  const probs = result.intensity_probabilities || []
+  const uncertaintyCombined = result.uncertainty_combined ?? result.uncertainty_std ?? 0
+  const uncertaintyPct = Math.min(100, Math.round(Number(uncertaintyCombined) * 100))
   const confidencePct = Math.round((result.confidence || 0) * 100)
+  const stainBurden = result.stain_burden_0_100
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-16 pt-28">
@@ -53,12 +66,22 @@ export default function ResultsPage() {
             >
               Grad-CAM Overlay
             </span>
-            <button onClick={() => setShowHeatmap((v) => !v)} className="btn-ghost rounded-lg px-3 py-1.5 text-xs">
-              {showHeatmap ? 'Show Original' : 'Show Heatmap'}
+            <button
+              type="button"
+              onClick={() => setShowHeatmap((v) => !v)}
+              disabled={!heatmapSrc}
+              className="btn-ghost rounded-lg px-3 py-1.5 text-xs disabled:opacity-40"
+            >
+              {showHeatmap && heatmapSrc ? 'Show Original' : 'Show Heatmap'}
             </button>
           </div>
+          {!heatmapSrc && (
+            <p className="mb-2 text-xs" style={{ color: '#7a6b59' }}>
+              Heatmap unavailable for this run; showing original patch.
+            </p>
+          )}
           <img
-            src={showHeatmap && heatmapSrc ? heatmapSrc : preview}
+            src={imgSrc}
             alt="Analysis result"
             className="h-[420px] w-full rounded-xl object-contain"
             style={{ background: 'rgba(0,0,0,0.35)' }}
@@ -67,6 +90,21 @@ export default function ResultsPage() {
 
         {/* Metrics panel */}
         <section className="glass-card space-y-6 p-6">
+          {result.non_tumor_context && (
+            <div
+              className="rounded-lg px-4 py-3 text-sm leading-relaxed"
+              style={{
+                background: 'rgba(138,153,98,0.08)',
+                border: '1px solid rgba(138,153,98,0.25)',
+                color: '#c4cfa8'
+              }}
+            >
+              <span className="font-semibold">ROI context.</span>{' '}
+              Tissue map is non-tumor ({result.tissue_type}). Stain readout still quantifies this patch—use
+              it alongside tumor-rich regions for biomarker workflows (e.g. CPS, TILs).
+            </div>
+          )}
+
           {result.needs_review && (
             <div
               className="rounded-lg px-4 py-3 text-sm font-medium"
@@ -76,7 +114,7 @@ export default function ResultsPage() {
                 color: '#e8c06a'
               }}
             >
-              ⚠ Flagged for manual review due to elevated uncertainty.
+              ⚠ Flagged for manual review: diffuse class probabilities (high uncertainty).
             </div>
           )}
 
@@ -86,10 +124,71 @@ export default function ResultsPage() {
             <ScoreBadge score={result.intensity_score} label={result.intensity_label} />
           </div>
 
+          {/* Stain burden — continuous readout */}
+          {stainBurden != null && !Number.isNaN(stainBurden) && (
+            <div>
+              <p className="section-label mb-2 block">Stain burden (0–100)</p>
+              <p className="mb-2 text-xs leading-relaxed" style={{ color: '#a08060' }}>
+                Weighted expectation from class probabilities—complements discrete 0/1+/2+/3 for lab analytics
+                and trend plots (marker-agnostic).
+              </p>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-2xl font-bold tabular-nums" style={{ color: '#f4ece0' }}>
+                  {Math.round(stainBurden)}
+                </span>
+                <span className="text-xs" style={{ color: '#7a6b59' }}>higher → more signal mass on patch</span>
+              </div>
+              <div
+                className="h-2 w-full overflow-hidden rounded-full"
+                style={{ background: 'rgba(212,178,140,0.1)' }}
+              >
+                <div
+                  className="h-2 rounded-full transition-all duration-700"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, stainBurden))}%`,
+                    background: 'linear-gradient(90deg, #8a9962, #c2621a)',
+                    boxShadow: '0 0 12px rgba(138,153,98,0.35)'
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Class distribution */}
+          {probs.length === 4 && (
+            <div>
+              <p className="section-label mb-3 block">Class distribution (MC mean)</p>
+              <div className="space-y-2">
+                {probs.map((p, i) => (
+                  <div key={INTENSITY_LABELS_SHORT[i]} className="flex items-center gap-3">
+                    <span className="w-8 text-xs font-semibold tabular-nums" style={{ color: '#c4ad92' }}>
+                      {INTENSITY_LABELS_SHORT[i]}
+                    </span>
+                    <div
+                      className="h-2 flex-1 overflow-hidden rounded-full"
+                      style={{ background: 'rgba(212,178,140,0.08)' }}
+                    >
+                      <div
+                        className="h-2 rounded-full"
+                        style={{
+                          width: `${Math.min(100, Math.round(p * 100))}%`,
+                          background: 'linear-gradient(90deg, #c2621a, #e89c60)'
+                        }}
+                      />
+                    </div>
+                    <span className="w-10 text-right text-xs tabular-nums" style={{ color: '#f4ece0' }}>
+                      {Math.round(p * 100)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Confidence bar */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <p className="section-label">Confidence</p>
+              <p className="section-label">Top-class confidence</p>
               <span className="text-base font-bold" style={{ color: '#f4ece0' }}>{confidencePct}%</span>
             </div>
             <div
@@ -102,6 +201,32 @@ export default function ResultsPage() {
                   width: `${confidencePct}%`,
                   background: 'linear-gradient(90deg, #c2621a, #8a9962)',
                   boxShadow: '0 0 12px rgba(194,98,26,0.5)'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Uncertainty (combined) */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="section-label">Uncertainty (combined)</p>
+              <span className="text-base font-bold tabular-nums" style={{ color: '#f4ece0' }}>
+                {uncertaintyPct}%
+              </span>
+            </div>
+            <p className="mb-2 text-xs leading-relaxed" style={{ color: '#7a6b59' }}>
+              max(MC dropout std on top class, normalized entropy). MC std can be 0 when dropout is inactive;
+              entropy still reflects spread across 0–3+.
+            </p>
+            <div
+              className="h-2 w-full overflow-hidden rounded-full"
+              style={{ background: 'rgba(212,178,140,0.1)' }}
+            >
+              <div
+                className="h-2 rounded-full transition-all duration-700"
+                style={{
+                  width: `${uncertaintyPct}%`,
+                  background: 'linear-gradient(90deg, #64748b, #c2621a)'
                 }}
               />
             </div>
@@ -121,15 +246,35 @@ export default function ResultsPage() {
             <div style={{ borderTop: '1px solid rgba(212,178,140,0.07)' }} />
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-widest" style={{ color: '#7a6b59' }}>
-                Uncertainty (std)
+                MC std (top class)
               </span>
               <span className="font-mono text-sm font-medium" style={{ color: '#f4ece0' }}>
                 {result.uncertainty_std ?? '—'}
               </span>
             </div>
+            {result.prediction_entropy != null && (
+              <>
+                <div style={{ borderTop: '1px solid rgba(212,178,140,0.07)' }} />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium uppercase tracking-widest" style={{ color: '#7a6b59' }}>
+                    Entropy
+                  </span>
+                  <span className="font-mono text-sm font-medium" style={{ color: '#f4ece0' }}>
+                    {result.prediction_entropy}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </section>
       </div>
+
+      <MetricsGlossary
+        className="mt-8"
+        eyebrow="Reading this result"
+        headingId="results-metrics-heading"
+        lead="The values above are for this patch only. Each metric below is decision-support—not a standalone diagnosis. Use them together with tissue context and your own review."
+      />
     </div>
   )
 }

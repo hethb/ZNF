@@ -87,7 +87,7 @@ async def analyze(image: UploadFile = File(...)) -> Dict[str, Any]:
     result = ANALYZER.analyze(img)
 
     heatmap_base64 = ""
-    if result.intensity_score is not None:
+    try:
         preprocessed = preprocess_pil_image(img)
         heatmap_base64 = generate_gradcam_overlay_base64(
             ANALYZER.intensity_model,
@@ -95,6 +95,8 @@ async def analyze(image: UploadFile = File(...)) -> Dict[str, Any]:
             img,
             class_idx=result.intensity_score,
         )
+    except Exception:
+        heatmap_base64 = ""
 
     return {
         "tissue_type": result.tissue_type,
@@ -104,6 +106,11 @@ async def analyze(image: UploadFile = File(...)) -> Dict[str, Any]:
         "confidence": round(result.confidence, 4),
         "needs_review": result.needs_review,
         "uncertainty_std": round(result.uncertainty_std, 4),
+        "uncertainty_combined": round(result.uncertainty_combined, 4),
+        "prediction_entropy": round(result.prediction_entropy, 4),
+        "intensity_probabilities": [round(p, 4) for p in result.intensity_probabilities],
+        "stain_burden_0_100": round(result.stain_burden_0_100, 2),
+        "non_tumor_context": result.non_tumor_context,
         "heatmap_base64": heatmap_base64,
     }
 
@@ -142,6 +149,9 @@ async def batch(zip_file: UploadFile = File(...)) -> JSONResponse:
                             "intensity_label": result.intensity_label,
                             "confidence": round(result.confidence, 4),
                             "uncertainty_std": round(result.uncertainty_std, 4),
+                            "uncertainty_combined": round(result.uncertainty_combined, 4),
+                            "stain_burden_0_100": round(result.stain_burden_0_100, 2),
+                            "non_tumor_context": result.non_tumor_context,
                             "needs_review": result.needs_review,
                         }
                     )

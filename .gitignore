@@ -20,3 +20,6 @@ frontend/dist/
 # Model artifacts and large files
 backend/model/artifacts/
 *.keras
+
+# Local bootstrap training data (regenerate with scripts/bootstrap_minimal_demo.py)
+data/bootstrap_demo/

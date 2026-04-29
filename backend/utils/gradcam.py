@@ -9,11 +9,34 @@ import tensorflow as tf
 from PIL import Image
 
 
-def _get_last_conv_layer_name(model: tf.keras.Model) -> str:
-    for layer in reversed(model.layers):
-        if len(layer.output.shape) == 4:
-            return layer.name
-    raise ValueError("No 4D convolutional layer found for Grad-CAM.")
+def _tensor_rank(t: tf.Tensor) -> int:
+    sh = t.shape
+    rank = getattr(sh, "rank", None)
+    if rank is not None:
+        return int(rank)
+    if hasattr(sh, "as_list"):
+        return len(sh.as_list())
+    return len(tuple(sh))
+
+
+def _build_grad_cam_submodel(model: tf.keras.Model) -> tf.keras.Model:
+    """Rebuild forward pass from ``model.input`` so rank-4 maps connect for Keras 3.
+
+    Nested ``Functional`` backbones (e.g. MobileNetV2) use a different internal ``Input`` tensor
+    than the parent model; ``Model(parent.input, backbone.output, …)`` then fails. Calling each
+    layer in order on ``model.input`` wires a valid subgraph for Grad-CAM.
+    """
+    if len(model.layers) < 2:
+        raise ValueError("Model too shallow for Grad-CAM.")
+    x = model.input
+    last_4d: tf.Tensor | None = None
+    for layer in model.layers[1:]:
+        x = layer(x)
+        if _tensor_rank(x) == 4:
+            last_4d = x
+    if last_4d is None:
+        raise ValueError("No rank-4 feature map found for Grad-CAM.")
+    return tf.keras.models.Model(model.input, [last_4d, x])
 
 
 def generate_gradcam_overlay_base64(
@@ -23,18 +46,18 @@ def generate_gradcam_overlay_base64(
     class_idx: Optional[int] = None,
     alpha: float = 0.4,
 ) -> str:
-    last_conv_layer = _get_last_conv_layer_name(model)
-    grad_model = tf.keras.models.Model(
-        [model.inputs], [model.get_layer(last_conv_layer).output, model.output]
-    )
+    grad_model = _build_grad_cam_submodel(model)
 
     with tf.GradientTape() as tape:
         conv_outputs, predictions = grad_model(preprocessed_image, training=False)
+        tape.watch(conv_outputs)
         if class_idx is None:
             class_idx = int(tf.argmax(predictions[0]))
         class_channel = predictions[:, class_idx]
 
     grads = tape.gradient(class_channel, conv_outputs)
+    if grads is None:
+        raise RuntimeError("Grad-CAM gradients were None.")
     pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
     conv_outputs = conv_outputs[0]
 
