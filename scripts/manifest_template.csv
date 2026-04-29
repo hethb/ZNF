@@ -1,0 +1,5 @@
+image_path,label,tissue_label
+patches/case001_roi01.png,0,tumor
+patches/case001_roi02.png,1+,stroma
+patches/case002_roi01.png,2+,tumor
+patches/case003_roi04.png,3+,tumor

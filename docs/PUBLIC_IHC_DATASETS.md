@@ -51,7 +51,7 @@ This directly answers “can I try it on something real?” better than syntheti
 
 ## Training scaffold in this repo
 
-Use `scripts/train_public_her2.py` with a simple manifest CSV:
+Use `scripts/train_public_her2.py` with a simple manifest CSV (template: `scripts/manifest_template.csv`):
 
 ```csv
 image_path,label,tissue_label
@@ -71,3 +71,16 @@ python scripts/train_public_her2.py \
 ```
 
 This stages data into PathIQ folder layout and launches `train.py` (and `train_tissue.py` if `tissue_label` is provided).
+
+One-command wrapper:
+
+```bash
+bash scripts/run_public_her2.sh /absolute/path/to/manifest.csv /absolute/path/to/dataset_root
+```
+
+Override epochs if needed:
+
+```bash
+INTENSITY_EPOCHS=30 TISSUE_EPOCHS=16 BATCH_SIZE=12 \
+bash scripts/run_public_her2.sh /absolute/path/to/manifest.csv /absolute/path/to/dataset_root
+```

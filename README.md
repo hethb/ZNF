@@ -35,7 +35,11 @@ cd frontend && npm install && npm run dev
 
 `bootstrap_minimal_demo.py` builds a tiny synthetic dataset and trains `.keras` checkpoints so the app runs from a fresh clone. **This is demo infrastructure, not model validation.** Replace with a public HER2/IHC cohort before investor claims.
 
-For real-data training, use `scripts/train_public_her2.py` with a manifest CSV (see dataset doc).
+For real-data training, use `scripts/train_public_her2.py` with a manifest CSV (template: `scripts/manifest_template.csv`), or the one-command wrapper:
+
+```bash
+bash scripts/run_public_her2.sh /absolute/path/to/manifest.csv /absolute/path/to/dataset_root
+```
 
 ---
 
