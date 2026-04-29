@@ -122,6 +122,19 @@ def build_model() -> tf.keras.Model:
     return model
 
 
+def fine_tune_model(model: tf.keras.Model, unfreeze_layers: int = 30) -> None:
+    base_model = model.layers[1]
+    base_model.trainable = True
+    for layer in base_model.layers[:-unfreeze_layers]:
+        layer.trainable = False
+
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(1e-5),
+        loss="categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", type=Path, default=Path("data"))
@@ -162,10 +175,22 @@ def main() -> None:
     history = model.fit(
         train_gen,
         validation_data=val_gen,
-        epochs=args.epochs,
+        epochs=max(1, int(args.epochs * 0.7)),
         callbacks=callbacks,
         verbose=1,
     )
+
+    fine_tune_model(model, unfreeze_layers=30)
+    history_ft = model.fit(
+        train_gen,
+        validation_data=val_gen,
+        epochs=max(1, args.epochs - max(1, int(args.epochs * 0.7))),
+        callbacks=callbacks,
+        verbose=1,
+    )
+
+    for key, value in history_ft.history.items():
+        history.history.setdefault(key, []).extend(value)
 
     plot_training_curves(history, args.output_dir)
     evaluate_and_export(model, test_gen, args.output_dir)

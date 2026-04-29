@@ -47,6 +47,19 @@ def build_model(num_classes: int) -> tf.keras.Model:
     return model
 
 
+def fine_tune_model(model: tf.keras.Model, unfreeze_layers: int = 30) -> None:
+    base_model = model.layers[1]
+    base_model.trainable = True
+    for layer in base_model.layers[:-unfreeze_layers]:
+        layer.trainable = False
+
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(1e-5),
+        loss="categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", type=Path, default=Path("data/tissue"))
@@ -92,10 +105,22 @@ def main() -> None:
         ),
     ]
 
+    freeze_epochs = max(1, int(args.epochs * 0.7))
+    fine_tune_epochs = max(1, args.epochs - freeze_epochs)
+
     model.fit(
         train_gen,
         validation_data=val_gen,
-        epochs=args.epochs,
+        epochs=freeze_epochs,
+        callbacks=callbacks,
+        verbose=1,
+    )
+
+    fine_tune_model(model, unfreeze_layers=30)
+    model.fit(
+        train_gen,
+        validation_data=val_gen,
+        epochs=fine_tune_epochs,
         callbacks=callbacks,
         verbose=1,
     )

@@ -33,6 +33,7 @@ TISSUE_CLASSES: List[str] = [
 @dataclass
 class PredictionResult:
     tissue_type: str
+    tissue_confidence: float
     intensity_score: Optional[int]
     intensity_label: Optional[str]
     confidence: float
@@ -103,6 +104,8 @@ class IHCAnalyzer:
         self.version = version
         self.intensity_model = self._load_model_if_exists(intensity_model_path)
         self.tissue_model = self._load_model_if_exists(tissue_model_path)
+        self.tumor_gate_threshold = 0.45
+        self.tumor_margin_override = 0.12
 
     @staticmethod
     def _build_mobilenet_head(num_classes: int, dropout_rate: float = 0.35) -> tf.keras.Model:
@@ -167,24 +170,51 @@ class IHCAnalyzer:
         uncertainty = float(std_pred[idx])
         return idx, confidence, uncertainty
 
+    def _should_run_intensity(
+        self,
+        top_tissue_idx: int,
+        top_tissue_conf: float,
+        tumor_conf: float,
+    ) -> bool:
+        # Run intensity if tumor wins, tumor probability is strong enough, or
+        # tumor is close to the top class (uncertain tissue classifier case).
+        if top_tissue_idx == 0:
+            return True
+        if tumor_conf >= self.tumor_gate_threshold:
+            return True
+        return (top_tissue_conf - tumor_conf) <= self.tumor_margin_override
+
     def analyze(self, image: Image.Image) -> PredictionResult:
-        tissue_type, _ = self.classify_tissue(image)
-        if tissue_type != "tumor":
+        if self.tissue_model is None:
+            raise RuntimeError("Tissue model is not loaded.")
+
+        x = preprocess_pil_image(image)
+        tissue_probs = self.tissue_model.predict(x, verbose=0)[0]
+        top_idx = int(np.argmax(tissue_probs))
+        top_conf = float(tissue_probs[top_idx])
+        tissue_type = TISSUE_CLASSES[top_idx]
+        tumor_conf = float(tissue_probs[0])
+
+        if not self._should_run_intensity(top_idx, top_conf, tumor_conf):
             return PredictionResult(
                 tissue_type=tissue_type,
+                tissue_confidence=top_conf,
                 intensity_score=None,
                 intensity_label=None,
-                confidence=0.0,
+                confidence=tumor_conf,
                 uncertainty_std=0.0,
                 needs_review=True,
             )
 
         score, confidence, std = self.predict_intensity_with_uncertainty(image, runs=10)
+        # Mark review when tissue classifier did not confidently call tumor.
+        tissue_gate_uncertain = top_idx != 0
         return PredictionResult(
             tissue_type=tissue_type,
+            tissue_confidence=top_conf,
             intensity_score=score,
             intensity_label=INTENSITY_LABELS[score],
             confidence=confidence,
             uncertainty_std=std,
-            needs_review=std > 0.15,
+            needs_review=(std > 0.15) or tissue_gate_uncertain,
         )

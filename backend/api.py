@@ -98,6 +98,7 @@ async def analyze(image: UploadFile = File(...)) -> Dict[str, Any]:
 
     return {
         "tissue_type": result.tissue_type,
+        "tissue_confidence": round(result.tissue_confidence, 4),
         "intensity_score": result.intensity_score,
         "intensity_label": result.intensity_label,
         "confidence": round(result.confidence, 4),
@@ -136,6 +137,7 @@ async def batch(zip_file: UploadFile = File(...)) -> JSONResponse:
                         {
                             "filename": Path(name).name,
                             "tissue_type": result.tissue_type,
+                            "tissue_confidence": round(result.tissue_confidence, 4),
                             "intensity_score": result.intensity_score,
                             "intensity_label": result.intensity_label,
                             "confidence": round(result.confidence, 4),

@@ -27,14 +27,14 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           to="/"
-          className="select-none text-base font-bold"
-          style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            letterSpacing: '-0.02em',
-            color: '#f4ece0'
-          }}
+          className="select-none"
+          aria-label="PathIQ home"
         >
-          Path<span className="gradient-text">IQ</span>
+          <img
+            src="/pathiq-logo-full.png"
+            alt="PathIQ"
+            className="h-10 w-auto object-contain"
+          />
         </Link>
 
         {/* Nav pill container */}
