@@ -23,3 +23,8 @@ backend/model/artifacts/
 
 # Local bootstrap training data (regenerate with scripts/bootstrap_minimal_demo.py)
 data/bootstrap_demo/
+
+# Downloaded public datasets and HF cache (keep local only)
+data/adel/
+.hf_cache/
+.mpl_cache/
