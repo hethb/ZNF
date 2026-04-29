@@ -21,10 +21,13 @@ export default function AboutPage() {
         </p>
         <p className="text-base leading-8" style={{ color: '#a08060' }}>
           The product goal is{' '}
-          <span className="font-semibold" style={{ color: '#c4ad92' }}>decision support</span>, not
-          replacement—faster, more consistent pre-sorting and scoring with uncertainty flags, while experts
-          retain final judgment. That framing targets workflow efficiency rather than a standalone
-          diagnostic claim.
+          <span className="font-semibold" style={{ color: '#c4ad92' }}>Pathologists spend hours every week manually scoring 
+            IHC-stained tissue slides on a zero to three-plus scale — it's 
+            tedious, subjective, and doesn't scale as cancer biomarker panels keep growing. 
+            PathIQ is AI-powered decision-support software that automates that scoring. You upload a slide, 
+            and within seconds our system identifies the tissue type, scores the staining intensity, 
+            flags anything it's uncertain about for manual review, and shows you a heatmap of exactly where it's looking — 
+            so the pathologist stays in control but spends their time on judgment, not pixel counting. 
         </p>
 
         <div style={{ borderTop: '1px solid rgba(212,178,140,0.08)' }} />
