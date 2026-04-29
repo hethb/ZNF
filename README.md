@@ -1,12 +1,14 @@
 # PathIQ
 
-**Problem first:** pathology labs are drowning in **IHC and digital slide volume** while pathologist capacity lags demand in many markets. Manual 0/1+/2+/3+ scoring is slow, variable between readers, and does not scale with biomarker panel growth. **PathIQ** is decision-support software: tissue-aware patch scoring, uncertainty, and Grad-CAM-style overlays so experts spend time on judgment, not pixel counting.
+**Problem first:** pathology demand is rising faster than diagnostic capacity. WHO/IARC estimates **20M** new cancer cases in 2022 and projects **35M by 2050 (+77%)**, increasing downstream pathology workload ([IARC, 2024](https://www.iarc.who.int/wp-content/uploads/2024/02/pr345_E.pdf)). On workforce, CAP-backed modeling literature estimated US pathologist supply could decline from ~17,500 FTE (2010) to ~14,000 by 2030 if training/replacement dynamics stay constrained ([Arch Pathol Lab Med, 2015](https://meridian.allenpress.com/aplm/article/139/11/1413/132505/The-Pathologist-Workforce-in-the-United-States-II)); CAP continues to flag demand outpacing supply ([CAP, 2026](https://www.cap.org/advocacy/latest-news-and-practice-data/cap-engages-with-hrsa-on-pathologist-workforce-projections)).
 
-**Origin story (not the product boundary):** the stack is grounded in published research on **ZNF835**, gene regulation, and **AI-enhanced IHC**—then **generalized to any biomarker** the lab runs.
+PathIQ is decision-support software for IHC: tissue context, intensity scoring, uncertainty, and Grad-CAM overlays so experts spend time on judgment, not repetitive counting.
 
-**Business, pricing sketch, GTM, regulatory framing, and pathologist LOI template:** see **[BUSINESS.md](./BUSINESS.md)** (YC-oriented outline; validate numbers and claims before fundraising).
+**Origin story (not the product boundary):** the stack began with ZNF835 research, then generalized to **any biomarker**.
 
-**Public data for a “real” demo:** see **[docs/PUBLIC_IHC_DATASETS.md](./docs/PUBLIC_IHC_DATASETS.md)** (HER2 challenges, H&E patch corpora, TCGA/TCIA pointers). **Ship a live demo before perfect copy:** run the bootstrap script below, open **`/demo`** in the UI, record a 90-second Loom.
+**Business model, pricing test range, GTM, regulatory framing, and pathologist outreach tracker:** see **[BUSINESS.md](./BUSINESS.md)**.
+
+**Public data for a real demo:** see **[docs/PUBLIC_IHC_DATASETS.md](./docs/PUBLIC_IHC_DATASETS.md)** (includes TUPAC16/HER2 pointers). Ship a live demo before investor outreach: run the bootstrap script below, open **`/demo`**, then replace synthetic weights with a public IHC run.
 
 ---
 
@@ -31,7 +33,7 @@ cd frontend && npm install && npm run dev
 - API: `http://127.0.0.1:8000` (docs at `/docs`)
 - UI: `http://127.0.0.1:5173` — use **`/demo`** for four preloaded patches (no upload), or **`/analyze`** for your own JPG/PNG.
 
-`bootstrap_minimal_demo.py` builds a tiny synthetic dataset and trains **real** `.keras` checkpoints so partners can click the product. **Replace with public IHC labels** before clinical or investor claims.
+`bootstrap_minimal_demo.py` builds a tiny synthetic dataset and trains `.keras` checkpoints so the app runs from a fresh clone. **This is demo infrastructure, not model validation.** Replace with a public HER2/IHC cohort before investor claims.
 
 ---
 
@@ -49,6 +51,12 @@ Dataset layout for your own labels:
 ### Reference notebook (gist)
 
 The linked [gist](https://gist.github.com/hethb/8dc94ff3fb3cc1ca911bd766000d5c7e) is a **tabular** sklearn teaching notebook (not IHC images). It is useful for **metrics literacy**; patch training entry points are the `backend.model.*` modules above.
+
+## Pre-fundraise checklist (high priority)
+
+- [ ] Train and ship **real** weights from a public IHC cohort (recommended first target: TUPAC16/HER2-style labels).
+- [ ] Capture one pathologist usage signal (email/quote/LOI) and paste into `BUSINESS.md`.
+- [ ] Rename repo from `ZNF` to `pathiq` in GitHub settings before sharing investor links.
 
 ---
 

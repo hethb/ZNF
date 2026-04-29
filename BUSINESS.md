@@ -1,12 +1,14 @@
 # PathIQ — business, market, and regulatory outline
 
-This document is a working **YC-style** brief: who pays, why now, how you go to market, and how you stay on the right side of FDA rules. **Numbers below are illustrative placeholders**—replace with primary sources before investor diligence.
+This is a working YC-style brief: who pays, why now, how we sell, and how we de-risk regulation. This document is intentionally concrete where we have hypotheses and explicit where we still need evidence.
 
 ---
 
 ## Problem and market (lead the pitch with this)
 
-Digital IHC and whole-slide imaging are scaling faster than pathologist headcount in many regions. Labs face **rising slide volume**, **multi-marker panels**, and pressure on turnaround—while hiring remains competitive. AI-assisted **scoring, triage, and QC** are among the few levers that scale without adding a pathologist FTE for every incremental case.
+Cancer burden growth increases downstream pathology work. WHO/IARC reports **20M** new cancer cases (2022) and projects **35M by 2050 (+77%)** ([IARC, 2024](https://www.iarc.who.int/wp-content/uploads/2024/02/pr345_E.pdf)). On workforce, CAP-backed pathology workforce modeling projected US pathologist supply decline from ~17,500 FTE (2010) to ~14,000 by 2030 under constrained replacement assumptions ([Arch Pathol Lab Med, 2015](https://meridian.allenpress.com/aplm/article/139/11/1413/132505/The-Pathologist-Workforce-in-the-United-States-II)); CAP still describes demand outpacing supply ([CAP, 2026](https://www.cap.org/advocacy/latest-news-and-practice-data/cap-engages-with-hrsa-on-pathologist-workforce-projections)).
+
+Labs face higher slide volume, multi-marker workflows, and turnaround pressure. AI-assisted scoring/triage/QC is one of the few scalable levers that does not require linear growth in pathologist FTE.
 
 ZNF835 / colorectal biology is the **origin story and research credibility**; the **product** is generalized IHC decision-support for labs, not a single-gene diagnostic.
 
@@ -22,14 +24,18 @@ ZNF835 / colorectal biology is the **origin story and research credibility**; th
 
 ---
 
-## Pricing (example to stress-test with customers)
+## Pricing hypothesis (explicitly testable)
 
-Illustrative starting point for conversation (not a quote):
+Current hypothesis for independent/regional labs:
 
-- **~$500 / seat / month** per pathologist power-user on the analysis console, with annual commit; or
-- **Per-slide / per-block** metering for high-volume send-out labs.
+- **$500 / seat / month** per pathologist power-user on annual contract.
+- Alternative for high-volume send-out groups: per-slide metering.
 
-Adjust after 10–15 discovery calls. Anchor value on **hours saved per week** and **report consistency**, not raw model accuracy.
+Validation plan (next 4–6 weeks):
+
+- Price-test in discovery calls at **$300, $500, $800 / seat / month**.
+- Anchor value on measurable workflow outcomes: minutes/case saved, batch turnaround, and within-1 agreement consistency.
+- Lock first pilot pricing only after 10+ buyer calls.
 
 ---
 
@@ -38,7 +44,7 @@ Adjust after 10–15 discovery calls. Anchor value on **hours saved per week** a
 1. **Ship a live demo** (`/demo` + trained weights)—YC partners will tap it before reading the appendix.
 2. **One design-partner lab** (e.g. pilot with a UPMC-adjacent or regional lab given CMU/UPMC proximity): scoped LOI, defined success metrics (time-on-task, within-1 agreement with reference reads on a fixed panel).
 3. **90-second Loom** of: upload → tissue + intensity + uncertainty + Grad-CAM on a **public** IHC patch dataset (see `docs/PUBLIC_IHC_DATASETS.md`).
-4. **Replace bootstrap synthetic weights** with a small **real** public cohort (even ~200 patches) before broad investor outreach.
+4. **Replace synthetic weights with public IHC weights before investor outreach**; first target is TUPAC16/HER2-style data (or equivalent public HER2 cohort), then report hold-out confusion matrix + kappa.
 
 ---
 
@@ -72,12 +78,21 @@ YC cares about **“someone who would pay”** or **“someone who would use it.
 > “I would use PathIQ for [QC / triage / batch scoring] on [marker / case type] because [specific workflow pain]. I understand this is decision-support and not a primary diagnosis.”  
 > — Name, credential, institution, date.
 
-Paste the quote (with permission) into this section when ready.
+### Outreach tracker (start with 10 this week)
+
+| Name | Role | Institution | Date sent | Response | Quote/next step |
+|---|---|---|---|---|---|
+| _TBD_ |  |  |  |  |  |
+| _TBD_ |  |  |  |  |  |
+| _TBD_ |  |  |  |  |  |
+
+Paste first permissioned quote directly under this table.
 
 ---
 
 ## What to validate next
 
-- [ ] Replace synthetic bootstrap weights with **public IHC** training run + hold-out metrics.
+- [ ] Replace synthetic bootstrap weights with **public IHC** training run + hold-out metrics (target: TUPAC16/HER2 first).
 - [ ] One signed or verbal **design partner** + success criteria.
 - [ ] **Regulatory memo** from counsel (1–2 pages) on device vs non-device CDS for your exact UX copy and outputs.
+- [ ] Rename GitHub repo from `ZNF` to `pathiq` before external outreach.

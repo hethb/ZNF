@@ -13,6 +13,7 @@ Below are **starting points** (verify licenses, attribution, and whether labels 
 | **CAMELYON16 / 17** | Lymph node metastasis in **H&E** WSI—not IHC, but standard for patch CNN demos and transfer to your heads. |
 | **PatchCamelyon (PCam)** | Binary tumor patch classification on **H&E**; good for pretraining or tissue-style heads. |
 | **BACH / ICIAR 2018** | Breast histology **H&E** four-class; again not IHC, useful for tissue/texture pretraining. |
+| **TUPAC16 (HER2 scoring challenge)** | Public challenge used for HER2 score prediction from histopathology; strong candidate for replacing synthetic demo weights with a real 0/1+/2+/3-style benchmark run. |
 | **Kaggle “HER2” / breast IHC** | Search Kaggle for **HER2 scoring** or **IHC** challenges; several competitions use patch or ROI images with score labels—read rules for commercial use. |
 | **TCIA / TCGA** | Diagnostic slides exist for many cancers; **IHC is not universal** across all slide types; TCGA requires controlled access for some data. Use GDC Data Portal + pathology slide companions where available. |
 | **TIGER** (example challenge space) | Search for **grand challenges** in computational pathology; some provide ROI-level labels suitable for weak supervision or patch models. |
