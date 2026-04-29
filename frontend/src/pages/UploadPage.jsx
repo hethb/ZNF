@@ -10,21 +10,24 @@ export default function UploadPage() {
   const navigate = useNavigate()
 
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
+  const isZip = file?.name?.toLowerCase().endsWith('.zip')
 
   const onSubmit = async () => {
     if (!file) return
     setError('')
     setLoading(true)
     try {
-      if (file.name.toLowerCase().endsWith('.zip')) {
+      if (isZip) {
         const data = await analyzeBatch(file)
-        navigate('/batch', { state: { preloadResults: data.results || [], preloadCsvBase64: data.csv_base64 || '' } })
+        navigate('/batch', {
+          state: { preloadResults: data.results || [], preloadCsvBase64: data.csv_base64 || '' }
+        })
       } else {
         const result = await analyzeImage(file)
         navigate('/results', { state: { result, preview } })
       }
     } catch (err) {
-      setError(err?.response?.data?.detail || 'Analysis failed.')
+      setError(err?.response?.data?.detail || 'Analysis failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -33,7 +36,9 @@ export default function UploadPage() {
   const onFileChange = (nextFile) => {
     if (!nextFile) return
     const lower = nextFile.name.toLowerCase()
-    const valid = lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.zip')
+    const valid =
+      lower.endsWith('.jpg') || lower.endsWith('.jpeg') ||
+      lower.endsWith('.png') || lower.endsWith('.zip')
     if (!valid) {
       setError('Please upload JPG/PNG for single analysis or ZIP for batch analysis.')
       return
@@ -43,54 +48,127 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto max-w-5xl px-4 pb-16 pt-28">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-100">Analyze IHC Slides</h1>
-        <p className="mt-2 text-sm text-slate-200">Upload a single slide or a ZIP batch for AI-assisted scoring.</p>
+        <p className="section-label mb-2 block">Analysis</p>
+        <h1 className="display-heading text-4xl">Analyze IHC Slides</h1>
+        <p className="mt-2 text-sm" style={{ color: '#a08060' }}>
+          Upload a single slide image or a ZIP batch for AI-assisted scoring.
+        </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
-        <section className="rounded-none border border-white/60 bg-white/80 p-6 shadow-soft backdrop-blur">
+      <div className="grid gap-5 lg:grid-cols-[1.1fr_1fr]">
+        {/* Upload panel */}
+        <section className="glass-card p-6">
           <label
-            onDragOver={(e) => {
-              e.preventDefault()
-              setIsDragging(true)
-            }}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={(e) => {
               e.preventDefault()
               setIsDragging(false)
               onFileChange(e.dataTransfer.files?.[0] || null)
             }}
-            className={`flex min-h-64 cursor-pointer flex-col items-center justify-center rounded-none border-2 border-dashed px-6 py-8 text-center transition ${
-              isDragging ? 'border-brand bg-brand/5' : 'border-slate-300 hover:border-brand'
-            }`}
+            className="flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 text-center transition-all duration-200"
+            style={{
+              borderColor: isDragging ? 'rgba(194,98,26,0.65)' : 'rgba(212,178,140,0.14)',
+              background: isDragging ? 'rgba(194,98,26,0.07)' : 'rgba(212,178,140,0.02)'
+            }}
           >
-            <input type="file" accept=".jpg,.jpeg,.png,.zip" className="hidden" onChange={(e) => onFileChange(e.target.files?.[0] || null)} />
-            <p className="text-base font-semibold text-navy">Drag and drop image or ZIP</p>
-            <p className="mt-2 text-sm text-slate-500">JPG, PNG, ZIP supported</p>
-            {file && <p className="mt-5 rounded-none bg-slate-100 px-3 py-1 text-sm text-slate-700">{file.name}</p>}
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.zip"
+              className="hidden"
+              onChange={(e) => onFileChange(e.target.files?.[0] || null)}
+            />
+            {/* Upload icon */}
+            <div
+              className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
+              style={{
+                background: 'rgba(194,98,26,0.12)',
+                border: '1px solid rgba(194,98,26,0.28)'
+              }}
+            >
+              <svg
+                className="h-6 w-6"
+                style={{ color: '#d9834a' }}
+                fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" strokeWidth={1.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+            </div>
+            <p className="text-base font-semibold" style={{ color: '#f4ece0' }}>Drag and drop image or ZIP</p>
+            <p className="mt-1.5 text-sm" style={{ color: '#7a6b59' }}>JPG, PNG, ZIP supported</p>
+            {file && (
+              <span
+                className="mt-4 inline-block rounded-lg px-3 py-1 text-xs font-medium"
+                style={{
+                  background: 'rgba(194,98,26,0.12)',
+                  border: '1px solid rgba(194,98,26,0.26)',
+                  color: '#d9834a'
+                }}
+              >
+                {file.name}
+              </span>
+            )}
           </label>
 
-          <button
-            onClick={onSubmit}
-            disabled={!file || loading}
-            className="mt-5 rounded-none bg-gradient-to-r from-brand to-violet px-6 py-2.5 text-sm font-semibold text-slate-100 shadow-glow disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {loading ? 'Analyzing...' : file?.name?.toLowerCase().endsWith('.zip') ? 'Analyze Batch' : 'Analyze Slide'}
+          <button onClick={onSubmit} disabled={!file || loading} className="btn-primary mt-5 w-full py-3">
+            {loading ? (
+              <>
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Analyzing…
+              </>
+            ) : isZip ? 'Analyze Batch' : 'Analyze Slide'}
           </button>
 
-          {error && <p className="mt-4 rounded-none border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          {error && (
+            <div
+              className="mt-4 rounded-lg px-4 py-3 text-sm"
+              style={{
+                background: 'rgba(194,60,40,0.1)',
+                border: '1px solid rgba(194,60,40,0.25)',
+                color: '#f0a090'
+              }}
+            >
+              {error}
+            </div>
+          )}
         </section>
 
-        <section className="rounded-none border border-white/60 bg-white/80 p-4 shadow-soft backdrop-blur">
-          {preview && !file?.name?.toLowerCase().endsWith('.zip') ? (
-            <img src={preview} alt="preview" className="h-[380px] w-full rounded-none object-contain" />
+        {/* Preview panel */}
+        <section className="glass-card flex items-center justify-center p-4">
+          {preview && !isZip ? (
+            <img
+              src={preview}
+              alt="Slide preview"
+              className="max-h-80 w-full rounded-lg object-contain"
+            />
           ) : (
-            <div className="flex h-[380px] items-center justify-center rounded-none border border-slate-200 bg-slate-50 text-center text-sm text-slate-500">
-              {file?.name?.toLowerCase().endsWith('.zip')
-                ? 'ZIP selected. Results will open in Batch.'
-                : 'Preview appears here before analysis.'}
+            <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-xl"
+                style={{ background: 'rgba(212,178,140,0.04)', border: '1px solid rgba(212,178,140,0.09)' }}
+              >
+                <svg
+                  className="h-6 w-6"
+                  style={{ color: '#7a6b59' }}
+                  fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" strokeWidth={1.5}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18M21 15.75V5.625A2.625 2.625 0 0018.375 3H5.625A2.625 2.625 0 003 5.625v10.125" />
+                </svg>
+              </div>
+              <p className="text-sm" style={{ color: '#7a6b59' }}>
+                {isZip
+                  ? 'ZIP selected — results will open in Batch view.'
+                  : 'Preview appears here after upload.'}
+              </p>
             </div>
           )}
         </section>

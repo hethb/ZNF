@@ -1,120 +1,193 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const features = [
   {
+    num: '01',
     title: 'Tumor-first scoring pipeline',
     text: 'Every slide is tissue-classified before intensity scoring to avoid inappropriate calls on non-tumor regions.'
   },
   {
+    num: '02',
     title: 'Uncertainty-aware output',
     text: 'Monte Carlo dropout quantifies confidence and flags uncertain cases for manual review.'
   },
   {
+    num: '03',
     title: 'Visual explanation with Grad-CAM',
     text: 'Heatmap overlays make predictions interpretable for pathology review and communication.'
   }
 ]
 
 export default function LandingPage() {
-  const [spotlight, setSpotlight] = useState({ x: 50, y: 50 })
-  const [mode, setMode] = useState('hyper')
+  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 })
   const [ripples, setRipples] = useState([])
+  const heroRef = useRef(null)
 
-  const glowStrength = mode === 'hyper' ? 0.48 : 0.28
-  const glowRadius = mode === 'hyper' ? 44 : 32
+  useEffect(() => {
+    const onMove = (e) => {
+      setMouse({ x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight })
+    }
+    window.addEventListener('mousemove', onMove, { passive: true })
+    return () => window.removeEventListener('mousemove', onMove)
+  }, [])
+
+  const orbX = (mouse.x - 0.5) * 60
+  const orbY = (mouse.y - 0.5) * 50
+
+  const handleHeroClick = (e) => {
+    if (!heroRef.current) return
+    const rect = heroRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    const id = Date.now() + Math.random()
+    setRipples((prev) => [...prev, { id, x, y }])
+    setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 950)
+  }
 
   return (
-    <div className="pb-12 text-slate-100">
-      <section className="mx-auto max-w-6xl px-4 pt-16">
+    <div className="relative z-10 pb-24 pt-28">
+
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section
+        ref={heroRef}
+        onClick={handleHeroClick}
+        className="relative mx-auto max-w-5xl cursor-default select-none px-4 pb-12 pt-8"
+      >
+        {/* Parallax orb — earthy amber ember, shifts with mouse */}
         <div
-          className="relative overflow-hidden rounded-none border border-white/10 bg-white/5 p-8 shadow-[0_20px_60px_rgba(0,0,0,0.4)] backdrop-blur-xl md:p-12"
-          onMouseMove={(event) => {
-            const rect = event.currentTarget.getBoundingClientRect()
-            const x = ((event.clientX - rect.left) / rect.width) * 100
-            const y = ((event.clientY - rect.top) / rect.height) * 100
-            setSpotlight({ x, y })
-          }}
-          onClick={(event) => {
-            const rect = event.currentTarget.getBoundingClientRect()
-            const x = ((event.clientX - rect.left) / rect.width) * 100
-            const y = ((event.clientY - rect.top) / rect.height) * 100
-            const id = Date.now() + Math.random()
-            setRipples((prev) => [...prev, { id, x, y }])
-            window.setTimeout(() => {
-              setRipples((prev) => prev.filter((ripple) => ripple.id !== id))
-            }, 700)
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-1/2"
+          style={{
+            transform: `translate(calc(-50% + ${orbX}px), calc(-50% + ${orbY}px))`,
+            transition: 'transform 0.65s cubic-bezier(0.23, 1, 0.32, 1)'
           }}
         >
+          {/* Outer amber bloom */}
           <div
-            className="pointer-events-none absolute inset-0 transition-opacity duration-200"
+            className="h-96 w-96 rounded-full"
             style={{
-              background: `radial-gradient(circle at ${spotlight.x}% ${spotlight.y}%, rgba(99,102,241,${glowStrength}), transparent ${glowRadius}%)`
+              background: 'radial-gradient(circle, rgba(194,98,26,0.26) 0%, rgba(138,153,98,0.10) 55%, transparent 72%)',
+              filter: 'blur(60px)',
+              animation: 'orbPulse 4.5s ease-in-out infinite'
             }}
           />
+          {/* Inner glowing ember sphere */}
           <div
-            className="pointer-events-none absolute inset-0 transition-opacity duration-200"
+            className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
-              background: `radial-gradient(circle at ${spotlight.x}% ${spotlight.y}%, rgba(6,182,212,0.2), transparent ${glowRadius + 12}%)`
+              background: 'radial-gradient(circle at 38% 32%, rgba(245,175,90,0.95), rgba(194,98,26,0.88) 45%, rgba(100,45,10,0.72) 75%, rgba(20,10,4,0.5))',
+              boxShadow: '0 0 55px 18px rgba(194,98,26,0.32), 0 0 110px 45px rgba(194,98,26,0.14)',
+              animation: 'orbPulse 4.5s ease-in-out infinite'
             }}
           />
-          {ripples.map((ripple) => (
-            <div
-              key={ripple.id}
-              className="pointer-events-none absolute h-24 w-24 -translate-x-1/2 -translate-y-1/2 border border-brand/60 opacity-80 animate-ping"
-              style={{ left: `${ripple.x}%`, top: `${ripple.y}%` }}
-            />
-          ))}
-          <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-gradient-to-br from-brand/45 to-cyan/25 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-gradient-to-tr from-violet/40 to-brand/20 blur-3xl" />
+        </div>
 
-          <p className="relative mb-4 inline-flex rounded-none border border-brand/30 bg-brand/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-100">
-            AI-Powered Pathology Workflow
-          </p>
-          <h1 className="relative max-w-4xl text-4xl font-bold leading-tight text-slate-100 md:text-5xl">
-            Modern IHC scoring with confidence-aware AI assistance.
-          </h1>
-          <p className="relative mt-5 max-w-3xl text-base leading-7 text-slate-200 md:text-lg">
-            PathIQ helps pathologists move faster with an elegant, AI-native workflow for tissue recognition, intensity scoring,
-            uncertainty triage, and visual validation.
-          </p>
-          <div className="relative mt-4 flex items-center gap-2 text-xs">
-            <span className="text-slate-200">Move/click to interact:</span>
-            <button
-              type="button"
-              onClick={() => setMode('calm')}
-              className={`border px-2 py-1 ${mode === 'calm' ? 'border-slate-100 bg-white/20 text-slate-100' : 'border-slate-300/70 bg-white/10 text-slate-200'}`}
-            >
-              Calm
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('hyper')}
-              className={`border px-2 py-1 ${mode === 'hyper' ? 'border-slate-100 bg-white/20 text-slate-100' : 'border-slate-300/70 bg-white/10 text-slate-200'}`}
-            >
-              Hyper
-            </button>
+        {/* Click ripples — warm amber */}
+        {ripples.map((r) => (
+          <div
+            key={r.id}
+            aria-hidden="true"
+            className="pointer-events-none absolute rounded-full"
+            style={{
+              left: `${r.x}%`,
+              top: `${r.y}%`,
+              transform: 'translate(-50%, -50%)',
+              border: '1px solid rgba(194,98,26,0.5)',
+              animation: 'rippleExpand 0.95s ease-out forwards'
+            }}
+          />
+        ))}
+
+        {/* Hero text */}
+        <div className="relative z-10 text-center">
+          <div
+            className="mb-6 inline-flex items-center gap-2.5 rounded-full px-4 py-1.5"
+            style={{
+              background: 'rgba(194,98,26,0.1)',
+              border: '1px solid rgba(194,98,26,0.28)'
+            }}
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: '#d9834a', animation: 'orbPulse 2.2s ease-in-out infinite' }}
+            />
+            <span className="section-label">AI-Powered Pathology</span>
           </div>
 
-          <div className="relative mt-8 flex flex-wrap gap-3">
-            <Link to="/analyze" className="rounded-none bg-gradient-to-r from-brand via-violet to-cyan px-6 py-2.5 text-sm font-semibold text-slate-100 shadow-glow">
-              Analyze a Slide
+          <h1
+            className="display-heading mx-auto max-w-3xl text-5xl md:text-6xl lg:text-7xl"
+          >
+            Modern IHC scoring
+            <br />
+            <span className="gradient-text">with AI confidence.</span>
+          </h1>
+
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed" style={{ color: '#c4ad92' }}>
+            PathIQ gives pathologists a fast, interpretable AI-native workflow for tissue recognition,
+            intensity scoring, uncertainty triage, and visual validation.
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <Link to="/analyze" className="btn-primary px-8 py-3 text-[0.9rem]">
+              Analyze a Slide →
             </Link>
-            <Link to="/batch" className="rounded-none border border-white/20 bg-white/20 px-6 py-2.5 text-sm font-semibold text-slate-100 hover:bg-white/30">
+            <Link to="/batch" className="btn-ghost px-8 py-3 text-[0.9rem]">
               Batch Workflow
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto mt-10 max-w-6xl px-4">
+      {/* ── Feature cards ──────────────────────────────────────────────────── */}
+      <section className="relative z-10 mx-auto mt-20 max-w-5xl px-4">
+        <p className="section-label mb-3 block text-center">Core capabilities</p>
+        <h2 className="display-heading mb-12 text-center text-3xl">
+          Built for precision pathology
+        </h2>
         <div className="grid gap-5 md:grid-cols-3">
-          {features.map((feature) => (
-            <article key={feature.title} className="rounded-none border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-              <h3 className="text-base font-semibold text-slate-100">{feature.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-200">{feature.text}</p>
+          {features.map((f) => (
+            <article key={f.title} className="glass-card glass-card-hover p-6">
+              <p
+                className="mb-4 text-sm font-bold"
+                style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  background: 'linear-gradient(135deg, #e89c60, #c2621a)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}
+              >
+                {f.num}
+              </p>
+              <h3 className="text-base font-semibold" style={{ color: '#f4ece0' }}>{f.title}</h3>
+              <p className="mt-2 text-sm leading-6" style={{ color: '#a08060' }}>{f.text}</p>
             </article>
           ))}
+        </div>
+      </section>
+
+      {/* ── CTA strip ──────────────────────────────────────────────────────── */}
+      <section className="relative z-10 mx-auto mt-16 max-w-5xl px-4">
+        <div className="glass-card relative overflow-hidden px-8 py-12 text-center">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: 'radial-gradient(ellipse at 50% 0%, rgba(194,98,26,0.10), transparent 70%)'
+            }}
+          />
+          <p className="section-label mb-2 block">Get started</p>
+          <h2 className="display-heading relative text-2xl">
+            Ready to score your first slide?
+          </h2>
+          <p className="relative mx-auto mt-3 max-w-md text-sm" style={{ color: '#a08060' }}>
+            Upload a single JPG/PNG or a ZIP batch. Results arrive in seconds.
+          </p>
+          <div className="relative mt-7 flex flex-wrap justify-center gap-4">
+            <Link to="/analyze" className="btn-primary">Analyze a Slide →</Link>
+            <Link to="/batch" className="btn-ghost">Batch Workflow</Link>
+          </div>
         </div>
       </section>
     </div>

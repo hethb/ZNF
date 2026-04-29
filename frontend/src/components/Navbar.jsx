@@ -1,30 +1,68 @@
 import { Link, NavLink } from 'react-router-dom'
 
 const navItems = [
-  { to: '/', label: 'Home' },
-  { to: '/analyze', label: 'Analyze' },
-  { to: '/batch', label: 'Batch' },
-  { to: '/about', label: 'About' }
+  { to: '/', label: 'Home', end: true },
+  { to: '/analyze', label: 'Analyze', end: false },
+  { to: '/batch', label: 'Batch', end: false },
+  { to: '/about', label: 'About', end: false }
 ]
 
 export default function Navbar() {
   return (
-    <header className="sticky top-0 z-30 border-b border-white/60 bg-white/75 backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link to="/" className="bg-gradient-to-r from-brand via-violet to-cyan bg-clip-text text-lg font-bold tracking-tight text-transparent">
-          PathIQ
+    <header
+      className="fixed left-0 right-0 top-0 z-40 flex justify-center px-4 pt-4"
+      role="banner"
+    >
+      <nav
+        className="flex w-full max-w-5xl items-center justify-between rounded-2xl px-5 py-3"
+        style={{
+          background: 'rgba(18, 12, 7, 0.78)',
+          border: '1px solid rgba(212,178,140,0.10)',
+          backdropFilter: 'blur(28px)',
+          WebkitBackdropFilter: 'blur(28px)',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.5), 0 1px 0 rgba(212,178,140,0.06) inset'
+        }}
+        aria-label="Main navigation"
+      >
+        {/* Logo */}
+        <Link
+          to="/"
+          className="select-none text-base font-bold"
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            letterSpacing: '-0.02em',
+            color: '#f4ece0'
+          }}
+        >
+          Path<span className="gradient-text">IQ</span>
         </Link>
-        <div className="flex items-center gap-1 rounded-none border border-slate-200/70 bg-white/80 p-1 shadow-soft">
+
+        {/* Nav pill container */}
+        <div
+          className="flex items-center gap-0.5 rounded-xl p-1"
+          style={{
+            background: 'rgba(212,178,140,0.04)',
+            border: '1px solid rgba(212,178,140,0.07)'
+          }}
+        >
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.end}
               className={({ isActive }) =>
-                `rounded-none px-3 py-1.5 text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-gradient-to-r from-brand to-violet text-navy shadow-glow'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-navy'
+                `rounded-lg px-4 py-1.5 text-sm font-medium transition-all duration-200 ${
+                  isActive ? '' : 'hover:text-amber-100'
                 }`
+              }
+              style={({ isActive }) =>
+                isActive
+                  ? {
+                      background: 'linear-gradient(135deg, #c2621a, #8a3d0d)',
+                      color: '#f4ece0',
+                      boxShadow: '0 0 18px rgba(194,98,26,0.45)'
+                    }
+                  : { background: 'transparent', color: '#a08060' }
               }
             >
               {item.label}
