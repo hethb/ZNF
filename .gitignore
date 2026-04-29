@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+.venv/
+backend/.venv/
+backend/.venv312/
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# OS / IDE
+.DS_Store
+.vscode/
+
+# Model artifacts and large files
+backend/model/artifacts/
+*.keras
