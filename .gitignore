@@ -26,5 +26,7 @@ data/bootstrap_demo/
 
 # Downloaded public datasets and HF cache (keep local only)
 data/adel/
+data/public_her2_staged/
 .hf_cache/
 .mpl_cache/
+results/_train_run.log

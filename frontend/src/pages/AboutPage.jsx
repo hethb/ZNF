@@ -27,7 +27,8 @@ export default function AboutPage() {
             PathIQ is AI-powered decision-support software that automates that scoring. You upload a slide, 
             and within seconds our system identifies the tissue type, scores the staining intensity, 
             flags anything it's uncertain about for manual review, and shows you a heatmap of exactly where it's looking — 
-            so the pathologist stays in control but spends their time on judgment, not pixel counting. 
+            so the pathologist stays in control but spends their time on judgment, not pixel counting.
+          </span>
         </p>
 
         <div style={{ borderTop: '1px solid rgba(212,178,140,0.08)' }} />

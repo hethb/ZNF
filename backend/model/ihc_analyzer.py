@@ -60,6 +60,8 @@ class DataGenerator(tf.keras.utils.Sequence):
         shuffle: bool = True,
         augment: bool = False,
     ) -> None:
+        # Keras 3: PyDataset (tf.keras.utils.Sequence) must initialize the base or fit() can hang.
+        super().__init__(workers=1, use_multiprocessing=False, max_queue_size=10)
         self.image_paths = list(image_paths)
         self.labels = np.array(labels, dtype=np.int32)
         self.batch_size = batch_size

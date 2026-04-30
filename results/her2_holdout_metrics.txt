@@ -1,0 +1,8 @@
+# PathIQ intensity classifier — held-out test split
+# Split: train_test_split(test_size=0.3) then val/test on the 30% half; test is 15% of all patches (stratified, random_state=42).
+# Written (UTC): 2026-04-30T03:22:34.982993+00:00
+# ADEL HER2 IHC (Zenodo 10.5281/zenodo.15872690), 418 PNG, HER2score 0-3. Script: scripts/adel_her2_holdout_run.py
+n_test_patches: 63
+exact_agreement: 0.603175
+within_1_agreement: 0.857143
+cohens_kappa_linear: 0.593857

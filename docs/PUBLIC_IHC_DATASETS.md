@@ -49,6 +49,24 @@ This directly answers “can I try it on something real?” better than syntheti
 
 ---
 
+## ADEL (Zenodo) — HER2 IHC patches
+
+The **ADEL** release on Zenodo (e.g. `her2_dataset.zip`, DOI `10.5281/zenodo.15872690`) includes `her2_dataset/labels.csv` (`fname`, `HER2score` 0–3) and `her2_dataset/images/*.png`. After unzipping:
+
+```bash
+source backend/.venv/bin/activate
+python scripts/build_adel_manifest.py \
+  --adel_dir /path/to/her2_dataset \
+  --out_csv data/manifests/adel_her2.csv
+bash scripts/run_public_her2.sh "$(pwd)/data/manifests/adel_her2.csv" "$(pwd)/data/adel/her2_dataset"
+```
+
+To regenerate **holdout metrics** on staged data (writes `results/her2_holdout_metrics.txt`):
+
+```bash
+python scripts/adel_her2_holdout_run.py 12
+```
+
 ## Training scaffold in this repo
 
 Use `scripts/train_public_her2.py` with a simple manifest CSV (template: `scripts/manifest_template.csv`):

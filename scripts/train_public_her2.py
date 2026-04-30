@@ -104,6 +104,18 @@ def main() -> None:
     ap.add_argument("--tissue_epochs", type=int, default=12)
     ap.add_argument("--batch_size", type=int, default=16)
     ap.add_argument("--skip_tissue", action="store_true")
+    ap.add_argument(
+        "--clinical_metrics_path",
+        type=Path,
+        default=Path("results/her2_holdout_metrics.txt"),
+        help="Where to write holdout exact / within-1 / linear kappa (passed to backend.model.train).",
+    )
+    ap.add_argument(
+        "--clinical_metrics_note",
+        type=str,
+        default="",
+        help="Optional note line stored in the metrics file header.",
+    )
     args = ap.parse_args()
 
     if not (ROOT / "backend" / "model" / "train.py").exists():
@@ -120,22 +132,30 @@ def main() -> None:
             file=sys.stderr,
         )
 
+    metrics_path = args.clinical_metrics_path
+    if not metrics_path.is_absolute():
+        metrics_path = ROOT / metrics_path
+
     py = sys.executable
-    run(
-        [
-            py,
-            "-m",
-            "backend.model.train",
-            "--data_dir",
-            str(args.staging_dir),
-            "--output_dir",
-            str(args.artifacts),
-            "--epochs",
-            str(args.intensity_epochs),
-            "--batch_size",
-            str(args.batch_size),
-        ]
-    )
+    train_cmd: list[str] = [
+        py,
+        "-m",
+        "backend.model.train",
+        "--data_dir",
+        str(args.staging_dir),
+        "--output_dir",
+        str(args.artifacts),
+        "--epochs",
+        str(args.intensity_epochs),
+        "--batch_size",
+        str(args.batch_size),
+        "--clinical_metrics_path",
+        str(metrics_path),
+    ]
+    note = (args.clinical_metrics_note or "").strip()
+    if note:
+        train_cmd.extend(["--clinical_metrics_note", note])
+    run(train_cmd)
 
     if not args.skip_tissue:
         tissue_dir = args.staging_dir / "tissue"
