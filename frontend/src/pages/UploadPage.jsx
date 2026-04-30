@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import MetricsGlossary from '../components/MetricsGlossary'
 import { analyzeBatch, analyzeImage } from '../services/api'
 
@@ -54,7 +54,15 @@ export default function UploadPage() {
         <p className="section-label mb-2 block">Analysis</p>
         <h1 className="display-heading text-4xl">Analyze IHC Slides</h1>
         <p className="mt-2 text-sm" style={{ color: '#a08060' }}>
-          Upload a single slide image or a ZIP batch for AI-assisted scoring.
+          Upload a single patch or a ZIP for batch triage. For multi-ROI cases and case-level summaries, use{' '}
+          <Link to="/case" className="font-semibold underline underline-offset-2" style={{ color: '#d9834a' }}>
+            Case workflow
+          </Link>
+          ; for κ and confusion matrices against your reads, use{' '}
+          <Link to="/benchmark" className="font-semibold underline underline-offset-2" style={{ color: '#d9834a' }}>
+            Benchmark
+          </Link>
+          .
         </p>
       </div>
 

@@ -1,24 +1,37 @@
 import { useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { analyzeBatch } from '../services/api'
+import { triageDotStyle, triageFromUncertainty } from '../utils/uncertainty'
+
+const SECONDS_PER_MANUAL_READ = 45
 
 export default function BatchPage() {
   const { state } = useLocation()
   const [file, setFile] = useState(null)
   const [rows, setRows] = useState(state?.preloadResults || [])
   const [csvBase64, setCsvBase64] = useState(state?.preloadCsvBase64 || '')
-  const [sortBy, setSortBy] = useState('confidence_asc')
+  const [sortBy, setSortBy] = useState('uncertainty_desc')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const sortedRows = useMemo(() => {
     return [...rows].sort((a, b) => {
+      if (a.error && !b.error) return 1
+      if (!a.error && b.error) return -1
       if (sortBy === 'confidence_asc') return (a.confidence ?? 1) - (b.confidence ?? 1)
       if (sortBy === 'uncertainty_desc') return (b.uncertainty_combined ?? -1) - (a.uncertainty_combined ?? -1)
       if (sortBy === 'score_desc') return (b.intensity_score ?? -1) - (a.intensity_score ?? -1)
       return 0
     })
   }, [rows, sortBy])
+
+  const batchStats = useMemo(() => {
+    const ok = rows.filter((r) => !r.error)
+    const flagged = ok.filter((r) => r.needs_review || r.flag_for_review).length
+    const estSeconds = ok.length * SECONDS_PER_MANUAL_READ
+    const estMinutes = Math.max(1, Math.round(estSeconds / 60))
+    return { total: ok.length, flagged, estMinutes }
+  }, [rows])
 
   const onAnalyze = async () => {
     if (!file) return
@@ -99,8 +112,8 @@ export default function BatchPage() {
             onChange={(e) => setSortBy(e.target.value)}
             className="input-dark cursor-pointer"
           >
+            <option value="uncertainty_desc">Sort by uncertainty (triage first)</option>
             <option value="confidence_asc">Sort by confidence (lowest first)</option>
-            <option value="uncertainty_desc">Sort by uncertainty (highest first)</option>
             <option value="score_desc">Sort by score</option>
           </select>
         </div>
@@ -119,13 +132,38 @@ export default function BatchPage() {
         )}
       </section>
 
+      {rows.length > 0 && (
+        <section
+          className="glass-card mb-5 flex flex-wrap items-center justify-between gap-4 px-5 py-4 text-sm"
+          style={{ border: '1px solid rgba(138,153,98,0.2)' }}
+        >
+          <div>
+            <p className="font-semibold" style={{ color: '#f4ece0' }}>
+              Estimated time saved (batch): ~{batchStats.estMinutes} min
+            </p>
+            <p className="mt-1 text-xs" style={{ color: '#7a6b59' }}>
+              Assumes ~{SECONDS_PER_MANUAL_READ}s manual read per patch vs. instant model pass; adjust assumptions in
+              your SOP.
+            </p>
+          </div>
+          <div className="text-right">
+            <p style={{ color: '#e8c06a' }}>
+              Flagged {batchStats.flagged}/{batchStats.total || rows.length} regions for review
+            </p>
+            <p className="mt-1 text-xs" style={{ color: '#7a6b59' }}>
+              Uncertainty-first queue — review flagged rows before sign-out.
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* Results table */}
       <section className="glass-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr style={{ background: 'rgba(212,178,140,0.05)', borderBottom: '1px solid rgba(212,178,140,0.08)' }}>
-                {['Filename', 'Tissue', 'Score', 'Confidence', 'Flag for review'].map((h) => (
+                {['Triage', 'Filename', 'Tissue', 'Score', 'Confidence', 'Flag for review'].map((h) => (
                   <th
                     key={h}
                     className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-widest"
@@ -139,13 +177,24 @@ export default function BatchPage() {
             <tbody>
               {sortedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-14 text-center" style={{ color: '#7a6b59' }}>
+                  <td colSpan={6} className="px-5 py-14 text-center" style={{ color: '#7a6b59' }}>
                     No batch results yet. Upload a ZIP to begin.
                   </td>
                 </tr>
               ) : (
                 sortedRows.map((r, i) => (
                   <tr key={`${r.filename}-${i}`} className="table-row-dark">
+                    <td className="px-5 py-3.5">
+                      {!r.error ? (
+                        <span
+                          className="inline-block h-3 w-3 rounded-full"
+                          title={triageFromUncertainty(r.uncertainty_combined).label}
+                          style={triageDotStyle(r.uncertainty_combined)}
+                        />
+                      ) : (
+                        <span style={{ color: '#7a6b59' }}>—</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3.5 font-medium" style={{ color: '#f4ece0' }}>{r.filename}</td>
                     <td className="px-5 py-3.5" style={{ color: '#c4ad92' }}>{r.tissue_type || '—'}</td>
                     <td className="px-5 py-3.5" style={{ color: '#c4ad92' }}>{r.intensity_label || r.error || '—'}</td>

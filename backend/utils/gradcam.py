@@ -8,6 +8,8 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 
+from backend.utils.preprocessing import PreprocessConfig, cap_pil_long_edge
+
 
 def _tensor_rank(t: tf.Tensor) -> int:
     sh = t.shape
@@ -17,6 +19,17 @@ def _tensor_rank(t: tf.Tensor) -> int:
     if hasattr(sh, "as_list"):
         return len(sh.as_list())
     return len(tuple(sh))
+
+
+# Rebuilding a Functional submodel on every request is expensive. Cache per loaded model.
+_GRADCAM_SUBMODEL: dict[int, tf.keras.Model] = {}
+
+
+def get_or_build_grad_cam_submodel(model: tf.keras.Model) -> tf.keras.Model:
+    key = id(model)
+    if key not in _GRADCAM_SUBMODEL:
+        _GRADCAM_SUBMODEL[key] = _build_grad_cam_submodel(model)
+    return _GRADCAM_SUBMODEL[key]
 
 
 def _build_grad_cam_submodel(model: tf.keras.Model) -> tf.keras.Model:
@@ -46,7 +59,10 @@ def generate_gradcam_overlay_base64(
     class_idx: Optional[int] = None,
     alpha: float = 0.4,
 ) -> str:
-    grad_model = _build_grad_cam_submodel(model)
+    cfg = PreprocessConfig()
+    if max(original_image.size) > cfg.max_input_long_edge:
+        original_image = cap_pil_long_edge(original_image, cfg.max_input_long_edge)
+    grad_model = get_or_build_grad_cam_submodel(model)
 
     with tf.GradientTape() as tape:
         conv_outputs, predictions = grad_model(preprocessed_image, training=False)

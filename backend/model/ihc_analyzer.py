@@ -162,10 +162,11 @@ class IHCAnalyzer:
         return TISSUE_CLASSES[idx], float(pred[idx])
 
     def predict_intensity_with_uncertainty(
-        self, image: Image.Image, runs: int = 16
+        self, image: Image.Image, runs: int = 5
     ) -> Tuple[int, float, float, np.ndarray]:
         if self.intensity_model is None:
             raise RuntimeError("Intensity model is not loaded.")
+        runs = max(1, min(32, int(runs)))
         x = preprocess_pil_image(image)
         preds: List[np.ndarray] = []
         for _ in range(runs):
@@ -186,6 +187,7 @@ class IHCAnalyzer:
         image: Image.Image,
         uncertainty_std_threshold: float = 0.14,
         entropy_norm_threshold: float = 0.62,
+        mc_runs: int = 5,
     ) -> PredictionResult:
         if self.tissue_model is None:
             raise RuntimeError("Tissue model is not loaded.")
@@ -201,7 +203,9 @@ class IHCAnalyzer:
 
         # Always quantify stain on the patch (biomarker-agnostic lab workflow). Tissue class
         # is context for interpretation, not a hard block on scoring or Grad-CAM.
-        score, confidence, std, mean_pred = self.predict_intensity_with_uncertainty(image, runs=16)
+        score, confidence, std, mean_pred = self.predict_intensity_with_uncertainty(
+            image, runs=mc_runs
+        )
         probs = tuple(float(x) for x in mean_pred.tolist())
         stain_burden = float(
             100.0

@@ -105,7 +105,7 @@ export default function LandingPage() {
         <div className="relative z-10 grid gap-12 lg:grid-cols-12 lg:gap-8 lg:items-center">
           <div className="lg:col-span-7">
             <div className="mb-8 flex flex-wrap items-center gap-4">
-              <span className="section-label">Patch reads · IHC</span>
+              <span className="section-label">HER2 IHC pilot · case workflow</span>
               <span className="hidden h-px flex-1 min-w-[3rem] sm:block" style={{ background: 'rgba(212,178,140,0.2)' }} />
             </div>
 
@@ -116,9 +116,9 @@ export default function LandingPage() {
             </h1>
 
             <p className="type-pull mt-8 max-w-lg border-l border-[rgba(194,98,26,0.35)] pl-5">
-              PathIQ is decision-support for patch exports: tissue label, four-tier read, uncertainty flags,
-              and a heatmap—built from the same transfer-learning habits as the ZNF835 IHC work, now
-              marker-agnostic.
+              PathIQ is scoped as a <strong className="font-semibold text-[#f4ece0]">HER2 breast IHC</strong> pilot:
+              case-first triage, uncertainty-first queues, human corrections with audit trail, and exports labs
+              can file—without pretending to be every biomarker on every block.
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-3">
@@ -128,8 +128,14 @@ export default function LandingPage() {
               <Link to="/analyze" className="btn-ghost">
                 Single slide
               </Link>
+              <Link to="/case" className="btn-ghost">
+                Case
+              </Link>
               <Link to="/batch" className="btn-ghost">
-                Batch CSV
+                Batch
+              </Link>
+              <Link to="/benchmark" className="btn-ghost">
+                Bench
               </Link>
             </div>
           </div>
