@@ -1,34 +1,27 @@
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-16 pt-28">
-      {/* Editorial header */}
-      <div className="mb-10">
+    <div className="mx-auto max-w-3xl px-4 pb-20 pt-28 md:max-w-4xl">
+      <div className="mb-12 border-l-2 pl-6 md:pl-8" style={{ borderColor: 'rgba(194,98,26,0.4)' }}>
         <p className="section-label mb-3 block">About PathIQ</p>
-        <h1 className="display-heading text-5xl leading-tight md:text-6xl">
+        <h1 className="display-heading text-4xl leading-[1.08] md:text-6xl">
           Origin &amp;
           <br />
           <span className="gradient-text">Mission.</span>
         </h1>
       </div>
 
-      {/* Content card */}
-      <div className="glass-card space-y-6 p-8 md:p-10">
-        <p className="text-lg leading-8" style={{ color: '#c4ad92' }}>
+      <div className="glass-card space-y-8 p-8 md:p-10">
+        <p className="text-lg leading-[1.65]" style={{ color: '#c4ad92' }}>
           PathIQ is built for{' '}
-          <span className="font-semibold" style={{ color: '#d9834a' }}>any IHC biomarker</span>
-          : the same pipeline quantifies staining intensity and spatial context on patches or exports, so
-          labs are not locked to one antibody or study cohort.
-        </p>
-        <p className="text-base leading-8" style={{ color: '#a08060' }}>
-          The product goal is{' '}
-          <span className="font-semibold" style={{ color: '#c4ad92' }}>Pathologists spend hours every week manually scoring 
-            IHC-stained tissue slides on a zero to three-plus scale — it's 
-            tedious, subjective, and doesn't scale as cancer biomarker panels keep growing. 
-            PathIQ is AI-powered decision-support software that automates that scoring. You upload a slide, 
-            and within seconds our system identifies the tissue type, scores the staining intensity, 
-            flags anything it's uncertain about for manual review, and shows you a heatmap of exactly where it's looking — 
-            so the pathologist stays in control but spends their time on judgment, not pixel counting.
+          <span className="font-semibold" style={{ color: '#d9834a' }}>
+            any IHC biomarker
           </span>
+          : one pipeline for intensity, tissue context, and review flags on patches or exports—so you are
+          not buying a one-antibody toy.
+        </p>
+        <p className="type-pull border-l pl-5" style={{ borderColor: 'rgba(212,178,140,0.2)' }}>
+          Manual 0–3+ reads do not scale with growing panels. PathIQ is decision-support: upload a frame,
+          get tissue + score + uncertainty + a heatmap, then correct the model in your own sign-out loop.
         </p>
 
         <div style={{ borderTop: '1px solid rgba(212,178,140,0.08)' }} />
@@ -84,11 +77,12 @@ export default function AboutPage() {
             ].map((tag) => (
               <span
                 key={tag}
-                className="rounded-lg px-3.5 py-1.5 text-sm font-medium"
+                className="font-['Syne',sans-serif] px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.12em]"
                 style={{
-                  background: 'rgba(194,98,26,0.1)',
+                  background: 'rgba(194,98,26,0.08)',
                   border: '1px solid rgba(194,98,26,0.22)',
-                  color: '#d9834a'
+                  borderRadius: '0.1rem 0.45rem 0.1rem 0.45rem',
+                  color: '#e8a060'
                 }}
               >
                 {tag}

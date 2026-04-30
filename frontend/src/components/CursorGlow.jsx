@@ -21,10 +21,10 @@ export default function CursorGlow() {
         inset: 0,
         zIndex: 2,
         pointerEvents: 'none',
-        background: `radial-gradient(720px circle at ${pos.x}px ${pos.y}px,
-          rgba(194, 98, 26, 0.09),
-          rgba(138, 153, 98, 0.04) 45%,
-          transparent 62%)`
+        background: `radial-gradient(640px circle at ${pos.x}px ${pos.y}px,
+          rgba(194, 98, 26, 0.045),
+          rgba(138, 153, 98, 0.03) 42%,
+          transparent 58%)`
       }}
     />
   )

@@ -3,21 +3,37 @@ import { useEffect, useRef, useState } from 'react'
 
 const features = [
   {
-    num: '01',
-    title: 'Tissue-aware + stain readout',
-    text: 'Tissue class adds clinical context while patch-level stain quantification and Grad-CAM still run—so stroma-rich or mixed ROIs stay interpretable.'
+    tag: 'Context',
+    title: 'Tissue class + stain readout',
+    text:
+      'Patch-level intensity stays paired with tissue bucket so mixed ROIs—stroma-heavy, tumor edge—stay legible instead of collapsing to a single opaque score.',
+    span: 'md:col-span-2'
   },
   {
-    num: '02',
-    title: 'Uncertainty-aware output',
-    text: 'Monte Carlo dropout quantifies confidence and flags uncertain cases for manual review.'
+    tag: 'Triage',
+    title: 'When the model hesitates',
+    text:
+      'Dropout-derived spread and entropy-style signals mark rows for human review before they hit your sign-out queue.',
+    span: ''
   },
   {
-    num: '03',
-    title: 'Visual explanation with Grad-CAM',
-    text: 'Heatmap overlays make predictions interpretable for pathology review and communication.'
+    tag: 'Explain',
+    title: 'Where the network looks',
+    text:
+      'Heatmap overlays for communication with residents, referrers, or QA—not a black-box probability in isolation.',
+    span: ''
   }
 ]
+
+function SpecimenGrid() {
+  return (
+    <div className="specimen-grid" aria-hidden="true">
+      {Array.from({ length: 24 }, (_, i) => (
+        <span key={i} />
+      ))}
+    </div>
+  )
+}
 
 export default function LandingPage() {
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 })
@@ -32,8 +48,8 @@ export default function LandingPage() {
     return () => window.removeEventListener('mousemove', onMove)
   }, [])
 
-  const orbX = (mouse.x - 0.5) * 60
-  const orbY = (mouse.y - 0.5) * 50
+  const orbX = (mouse.x - 0.5) * 40
+  const orbY = (mouse.y - 0.5) * 32
 
   const handleHeroClick = (e) => {
     if (!heroRef.current) return
@@ -42,186 +58,185 @@ export default function LandingPage() {
     const y = ((e.clientY - rect.top) / rect.height) * 100
     const id = Date.now() + Math.random()
     setRipples((prev) => [...prev, { id, x, y }])
-    setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 950)
+    setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 900)
   }
 
   return (
-    <div className="relative z-10 pb-24 pt-28">
-
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+    <div className="relative z-10 pb-28 pt-28">
       <section
         ref={heroRef}
         onClick={handleHeroClick}
-        className="relative mx-auto max-w-5xl cursor-default select-none px-4 pb-12 pt-8"
+        className="relative mx-auto max-w-6xl cursor-default select-none px-4 pb-16 pt-6 md:pt-10"
       >
-        {/* Parallax orb — earthy amber ember, shifts with mouse */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1/2"
+          className="pointer-events-none absolute right-0 top-1/2 hidden lg:block"
           style={{
-            transform: `translate(calc(-50% + ${orbX}px), calc(-50% + ${orbY}px))`,
-            transition: 'transform 0.65s cubic-bezier(0.23, 1, 0.32, 1)'
+            transform: `translate(0, -50%) translate(${orbX * 0.3}px, ${orbY * 0.3}px)`,
+            transition: 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1)'
           }}
         >
-          {/* Outer amber bloom */}
           <div
-            className="h-96 w-96 rounded-full"
+            className="rounded-full blur-3xl"
             style={{
-              background: 'radial-gradient(circle, rgba(194,98,26,0.26) 0%, rgba(138,153,98,0.10) 55%, transparent 72%)',
-              filter: 'blur(60px)',
-              animation: 'orbPulse 4.5s ease-in-out infinite'
-            }}
-          />
-          {/* Inner glowing ember sphere */}
-          <div
-            className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{
-              background: 'radial-gradient(circle at 38% 32%, rgba(245,175,90,0.95), rgba(194,98,26,0.88) 45%, rgba(100,45,10,0.72) 75%, rgba(20,10,4,0.5))',
-              boxShadow: '0 0 55px 18px rgba(194,98,26,0.32), 0 0 110px 45px rgba(194,98,26,0.14)',
-              animation: 'orbPulse 4.5s ease-in-out infinite'
+              width: 320,
+              height: 320,
+              background:
+                'radial-gradient(circle, rgba(194,98,26,0.2) 0%, rgba(138,153,98,0.08) 50%, transparent 70%)',
+              animation: 'orbPulse 5s ease-in-out infinite'
             }}
           />
         </div>
 
-        {/* Click ripples — warm amber */}
         {ripples.map((r) => (
           <div
             key={r.id}
             aria-hidden="true"
-            className="pointer-events-none absolute rounded-full"
+            className="pointer-events-none absolute rounded-full border border-[rgba(194,98,26,0.35)]"
             style={{
               left: `${r.x}%`,
               top: `${r.y}%`,
               transform: 'translate(-50%, -50%)',
-              border: '1px solid rgba(194,98,26,0.5)',
-              animation: 'rippleExpand 0.95s ease-out forwards'
+              animation: 'rippleExpand 0.9s ease-out forwards'
             }}
           />
         ))}
 
-        {/* Hero text */}
-        <div className="relative z-10 text-center">
-          <div
-            className="mb-6 inline-flex items-center gap-2.5 rounded-full px-4 py-1.5"
-            style={{
-              background: 'rgba(194,98,26,0.1)',
-              border: '1px solid rgba(194,98,26,0.28)'
-            }}
-          >
-            <span
-              className="h-1.5 w-1.5 rounded-full"
-              style={{ background: '#d9834a', animation: 'orbPulse 2.2s ease-in-out infinite' }}
-            />
-            <span className="section-label">AI-Powered Pathology</span>
+        <div className="relative z-10 grid gap-12 lg:grid-cols-12 lg:gap-8 lg:items-center">
+          <div className="lg:col-span-7">
+            <div className="mb-8 flex flex-wrap items-center gap-4">
+              <span className="section-label">Patch reads · IHC</span>
+              <span className="hidden h-px flex-1 min-w-[3rem] sm:block" style={{ background: 'rgba(212,178,140,0.2)' }} />
+            </div>
+
+            <h1 className="display-heading max-w-xl text-4xl sm:text-5xl md:text-6xl">
+              Stain scores you can
+              <br />
+              <span className="gradient-text">argue with.</span>
+            </h1>
+
+            <p className="type-pull mt-8 max-w-lg border-l border-[rgba(194,98,26,0.35)] pl-5">
+              PathIQ is decision-support for patch exports: tissue label, four-tier read, uncertainty flags,
+              and a heatmap—built from the same transfer-learning habits as the ZNF835 IHC work, now
+              marker-agnostic.
+            </p>
+
+            <div className="mt-10 flex flex-wrap items-center gap-3">
+              <Link to="/demo" className="btn-primary">
+                Demo (no upload)
+              </Link>
+              <Link to="/analyze" className="btn-ghost">
+                Single slide
+              </Link>
+              <Link to="/batch" className="btn-ghost">
+                Batch CSV
+              </Link>
+            </div>
           </div>
 
-          <h1
-            className="display-heading mx-auto max-w-3xl text-5xl md:text-6xl lg:text-7xl"
-          >
-            Modern IHC scoring
-            <br />
-            <span className="gradient-text">with AI confidence.</span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed" style={{ color: '#c4ad92' }}>
-            PathIQ gives pathologists a fast, interpretable AI-native workflow for tissue recognition,
-            intensity scoring, uncertainty triage, and visual validation—generalizing methods first
-            explored in research on{' '}
-            <span className="font-medium" style={{ color: '#e8d4c4' }}>ZNF835</span>, IHC quantification,
-            and CNN-based histology.
-          </p>
-
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Link to="/demo" className="btn-primary px-8 py-3 text-[0.9rem]">
-              Live demo (no upload)
-            </Link>
-            <Link to="/analyze" className="btn-ghost px-8 py-3 text-[0.9rem]">
-              Analyze a Slide →
-            </Link>
-            <Link to="/batch" className="btn-ghost px-8 py-3 text-[0.9rem]">
-              Batch Workflow
-            </Link>
+          <div className="relative flex flex-col items-center gap-8 lg:col-span-5 lg:items-end">
+            <div
+              className="surface-editorial w-full max-w-sm p-6 pl-7"
+              style={{ borderLeftWidth: 4, borderLeftColor: 'rgba(138,153,98,0.5)' }}
+            >
+              <p className="font-['Syne',sans-serif] text-xs font-semibold tracking-widest text-[#8a9962]">
+                FIELD LAYOUT
+              </p>
+              <p className="mt-3 text-sm leading-relaxed" style={{ color: '#a08060' }}>
+                Six-by-four placeholder grid—echo of tiled WSI views—sits opposite the copy so the hero
+                is not another centered headline on a void.
+              </p>
+            </div>
+            <SpecimenGrid />
           </div>
         </div>
       </section>
 
-      {/* ── Feature cards ──────────────────────────────────────────────────── */}
-      <section className="relative z-10 mx-auto mt-20 max-w-5xl px-4">
-        <p className="section-label mb-3 block text-center">Core capabilities</p>
-        <h2 className="display-heading mb-12 text-center text-3xl">
-          Built for precision pathology
-        </h2>
-        <div className="grid gap-5 md:grid-cols-3">
-          {features.map((f) => (
-            <article key={f.title} className="glass-card glass-card-hover p-6">
-              <p
-                className="mb-4 text-sm font-bold"
-                style={{
-                  fontFamily: "'Space Grotesk', sans-serif",
-                  background: 'linear-gradient(135deg, #e89c60, #c2621a)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}
-              >
-                {f.num}
+      <section className="relative z-10 mx-auto mt-8 max-w-6xl px-4">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="section-label mb-2">What ships today</p>
+            <h2 className="display-heading text-2xl sm:text-3xl md:text-4xl">Three levers, one stack</h2>
+          </div>
+          <p className="max-w-sm text-sm leading-relaxed md:text-right" style={{ color: '#7a6b59' }}>
+            No carousel. No icon trio in circles. Just the parts a lab would actually wire into a pilot.
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
+          {features.map((f, i) => (
+            <article
+              key={f.title}
+              className={`glass-card glass-card-hover p-7 ${f.span} ${i === 1 ? 'md:translate-y-4' : i === 2 ? 'md:-translate-y-2' : ''}`}
+            >
+              <p className="font-['Syne',sans-serif] text-[0.65rem] font-bold tracking-[0.2em] text-[#c27a40]">
+                {f.tag}
               </p>
-              <h3 className="text-base font-semibold" style={{ color: '#f4ece0' }}>{f.title}</h3>
-              <p className="mt-2 text-sm leading-6" style={{ color: '#a08060' }}>{f.text}</p>
+              <h3 className="mt-3 font-['Syne',sans-serif] text-lg font-semibold tracking-tight" style={{ color: '#f4ece0' }}>
+                {f.title}
+              </h3>
+              <p className="mt-3 text-base leading-relaxed" style={{ color: '#a08060' }}>
+                {f.text}
+              </p>
             </article>
           ))}
         </div>
       </section>
 
-      {/* ── Research lineage ───────────────────────────────────────────────── */}
-      <section className="relative z-10 mx-auto mt-16 max-w-5xl px-4">
-        <div
-          className="glass-card px-6 py-8 md:px-10 md:py-9"
-          style={{ borderColor: 'rgba(138,153,98,0.2)' }}
-        >
-          <p className="section-label mb-2 block" style={{ color: '#8a9962' }}>
-            Research lineage
+      <section className="relative z-10 mx-auto mt-20 max-w-6xl px-4">
+        <div className="surface-editorial p-8 pl-9 md:p-10 md:pl-12" style={{ borderLeftColor: 'rgba(138,153,98,0.45)' }}>
+          <p className="section-label mb-3 block" style={{ color: '#8a9962' }}>
+            Paper → product
           </p>
-          <p className="text-base leading-relaxed md:text-lg" style={{ color: '#c4ad92' }}>
-            PathIQ’s architecture—transfer-learned CNNs on IHC patches, categorical stain readouts,
-            confusion-matrix–driven training hygiene, and emphasis on reproducible image
-            pipelines—extends the computational and bioinformatics direction laid out in{' '}
+          <p className="max-w-3xl text-lg leading-relaxed md:text-xl" style={{ color: '#c4ad92' }}>
+            The stack still carries the habits of{' '}
             <cite className="font-semibold not-italic" style={{ color: '#f4ece0' }}>
               Exploring the Oncogenic Potential of Zinc Finger Protein 835 (ZNF835) in Cancer
             </cite>
-            {' '}(Heth J. Bhatt), bridging gene-level rationale (e.g. chromosomal context, Pol&nbsp;II–linked
-            regulation) with slide-scale AI assistance. The product is now marker-agnostic; the paper
-            remains the scientific through-line.
+            —held-out metrics, confusion-matrix discipline, reproducible tensors—but PathIQ is deliberately
+            boring software: upload, read, export. The manuscript stays the citation trail; the UI stays
+            out of its way.
           </p>
-          <p className="mt-4 text-sm" style={{ color: '#7a6b59' }}>
-            <Link to="/about" className="font-semibold underline underline-offset-2" style={{ color: '#d9834a' }}>
-              Read the full story on About →
+          <p className="mt-6">
+            <Link
+              to="/about"
+              className="font-['Syne',sans-serif] text-sm font-semibold uppercase tracking-wider underline decoration-[rgba(194,98,26,0.5)] underline-offset-4"
+              style={{ color: '#d9834a' }}
+            >
+              About & lineage →
             </Link>
           </p>
         </div>
       </section>
 
-      {/* ── CTA strip ──────────────────────────────────────────────────────── */}
-      <section className="relative z-10 mx-auto mt-16 max-w-5xl px-4">
-        <div className="glass-card relative overflow-hidden px-8 py-12 text-center">
+      <section className="relative z-10 mx-auto mt-16 max-w-6xl px-4">
+        <div className="surface-editorial relative overflow-hidden px-8 py-11 text-left md:px-12 md:py-14">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0"
+            className="pointer-events-none absolute -right-20 top-0 h-64 w-64 rounded-full opacity-40"
             style={{
-              background: 'radial-gradient(ellipse at 50% 0%, rgba(194,98,26,0.10), transparent 70%)'
+              background: 'radial-gradient(circle, rgba(194,98,26,0.25), transparent 70%)',
+              filter: 'blur(40px)'
             }}
           />
-          <p className="section-label mb-2 block">Get started</p>
-          <h2 className="display-heading relative text-2xl">
-            Ready to score your first slide?
+          <p className="section-label mb-2">Next step</p>
+          <h2 className="display-heading relative max-w-md text-2xl md:text-3xl">
+            Try a patch on your machine.
           </h2>
-          <p className="relative mx-auto mt-3 max-w-md text-sm" style={{ color: '#a08060' }}>
-            Try <Link to="/demo" className="font-semibold underline underline-offset-2" style={{ color: '#d9834a' }}>Live demo</Link> with no upload, or bring your own JPG/PNG or ZIP batch.
+          <p className="relative mt-4 max-w-lg text-base leading-relaxed" style={{ color: '#a08060' }}>
+            Demo uses bundled frames; analyze accepts your JPG/PNG; batch zips a folder and returns a
+            sortable table.
           </p>
-          <div className="relative mt-7 flex flex-wrap justify-center gap-4">
-            <Link to="/demo" className="btn-primary">Live demo</Link>
-            <Link to="/analyze" className="btn-ghost">Analyze a Slide →</Link>
-            <Link to="/batch" className="btn-ghost">Batch Workflow</Link>
+          <div className="relative mt-8 flex flex-wrap gap-3">
+            <Link to="/demo" className="btn-primary">
+              Open demo
+            </Link>
+            <Link to="/analyze" className="btn-ghost">
+              Analyze
+            </Link>
+            <Link to="/batch" className="btn-ghost">
+              Batch
+            </Link>
           </div>
         </div>
       </section>
