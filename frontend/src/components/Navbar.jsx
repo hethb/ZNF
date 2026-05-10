@@ -7,6 +7,7 @@ const navItems = [
   { to: '/case', label: 'Case', end: false },
   { to: '/batch', label: 'Batch', end: false },
   { to: '/benchmark', label: 'Bench', end: false },
+  { to: '/pilot', label: 'Pilot', end: false },
   { to: '/about', label: 'About', end: false }
 ]
 

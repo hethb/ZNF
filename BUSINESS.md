@@ -46,6 +46,8 @@ Validation plan (next 4–6 weeks):
 3. **90-second Loom** of: upload → tissue + intensity + uncertainty + Grad-CAM on a **public** IHC patch dataset (see `docs/PUBLIC_IHC_DATASETS.md`).
 4. **Replace synthetic weights with public IHC weights before investor outreach**; first target is TUPAC16/HER2-style data (or equivalent public HER2 cohort), then report hold-out confusion matrix + kappa.
 
+See `docs/PILOT_PLAN.md` for the concrete five-week pilot sequence, success thresholds, and claims discipline to use in lab conversations.
+
 ---
 
 ## Regulatory path (high level — **not legal advice**)

@@ -1,194 +1,156 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import MetricsGlossary from '../components/MetricsGlossary'
-import { analyzeBatch, analyzeImage } from '../services/api'
+import { useNavigate } from 'react-router-dom'
+import { useCases } from '../context/CaseContext'
+import { REVIEWERS, STAIN_OPTIONS, TISSUE_OPTIONS } from '../types/case'
+
+const defaultForm = {
+  caseId: '',
+  sampleId: '',
+  tissueType: TISSUE_OPTIONS[0],
+  stainType: STAIN_OPTIONS[0],
+  scannerType: 'Aperio',
+  magnification: '20x',
+  assignedReviewer: REVIEWERS[0],
+  priority: 'Normal',
+  notes: ''
+}
 
 export default function UploadPage() {
-  const [file, setFile] = useState(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { createCase, isSyncing } = useCases()
+  const [files, setFiles] = useState([])
+  const [form, setForm] = useState(defaultForm)
+  const [error, setError] = useState('')
 
-  const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
-  const isZip = file?.name?.toLowerCase().endsWith('.zip')
+  const previews = useMemo(() => files.map((file) => ({ file, url: URL.createObjectURL(file) })), [files])
 
-  const onSubmit = async () => {
-    if (!file) return
+  const onSubmit = async (e) => {
+    e.preventDefault()
     setError('')
-    setLoading(true)
+
     try {
-      if (isZip) {
-        const data = await analyzeBatch(file)
-        navigate('/batch', {
-          state: { preloadResults: data.results || [], preloadCsvBase64: data.csv_base64 || '' }
-        })
-      } else {
-        const result = await analyzeImage(file)
-        navigate('/results', { state: { result, preview } })
+      const firstPreview = previews[0]?.url || '/demo/slide1.png'
+      const payload = {
+        ...form,
+        caseId: form.caseId || `CASE-${Math.floor(1000 + Math.random() * 9000)}`,
+        sampleId: form.sampleId || `SMP-${Math.floor(1000 + Math.random() * 9000)}`,
+        imageUrl: firstPreview
       }
-    } catch (err) {
-      setError(err?.response?.data?.detail || 'Analysis failed. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
 
-  const onFileChange = (nextFile) => {
-    if (!nextFile) return
-    const lower = nextFile.name.toLowerCase()
-    const valid =
-      lower.endsWith('.jpg') || lower.endsWith('.jpeg') ||
-      lower.endsWith('.png') || lower.endsWith('.zip')
-    if (!valid) {
-      setError('Please upload JPG/PNG for single analysis or ZIP for batch analysis.')
-      return
+      const newCase = await createCase({ payload, files })
+      navigate(`/cases/${newCase.id}`)
+    } catch {
+      setError('Failed to create case. Please try again.')
     }
-    setError('')
-    setFile(nextFile)
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-16 pt-28">
-      <div className="mb-8">
-        <p className="section-label mb-2 block">Analysis</p>
-        <h1 className="display-heading text-4xl">Analyze IHC Slides</h1>
-        <p className="mt-2 text-sm" style={{ color: '#a08060' }}>
-          Upload a single patch or a ZIP for batch triage. For multi-ROI cases and case-level summaries, use{' '}
-          <Link to="/case" className="font-semibold underline underline-offset-2" style={{ color: '#d9834a' }}>
-            Case workflow
-          </Link>
-          ; for κ and confusion matrices against your reads, use{' '}
-          <Link to="/benchmark" className="font-semibold underline underline-offset-2" style={{ color: '#d9834a' }}>
-            Benchmark
-          </Link>
-          .
-        </p>
-      </div>
+    <div style={{ display: 'grid', gap: '1.15rem' }}>
+      <header>
+        <div className="micro-label">Intake</div>
+        <h1 className="page-title">Slide upload & case intake</h1>
+        <p className="page-subtitle">Register specimens with structured metadata, then route slides into AI-assisted pre-scoring.</p>
+      </header>
 
-      <div className="grid gap-5 lg:grid-cols-[1.1fr_1fr]">
-        {/* Upload panel */}
-        <section className="glass-card p-6">
-          <label
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault()
-              setIsDragging(false)
-              onFileChange(e.dataTransfer.files?.[0] || null)
-            }}
-            className="flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 text-center transition-all duration-200"
-            style={{
-              borderColor: isDragging ? 'rgba(194,98,26,0.65)' : 'rgba(212,178,140,0.14)',
-              background: isDragging ? 'rgba(194,98,26,0.07)' : 'rgba(212,178,140,0.02)'
-            }}
-          >
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png,.zip"
-              className="hidden"
-              onChange={(e) => onFileChange(e.target.files?.[0] || null)}
-            />
-            {/* Upload icon */}
-            <div
-              className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
-              style={{
-                background: 'rgba(194,98,26,0.12)',
-                border: '1px solid rgba(194,98,26,0.28)'
-              }}
-            >
-              <svg
-                className="h-6 w-6"
-                style={{ color: '#d9834a' }}
-                fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" strokeWidth={1.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-              </svg>
-            </div>
-            <p className="text-base font-semibold" style={{ color: '#f4ece0' }}>Drag and drop image or ZIP</p>
-            <p className="mt-1.5 text-sm" style={{ color: '#7a6b59' }}>JPG, PNG, ZIP supported</p>
-            {file && (
-              <span
-                className="mt-4 inline-block rounded-lg px-3 py-1 text-xs font-medium"
-                style={{
-                  background: 'rgba(194,98,26,0.12)',
-                  border: '1px solid rgba(194,98,26,0.26)',
-                  color: '#d9834a'
-                }}
-              >
-                {file.name}
-              </span>
-            )}
-          </label>
+      <form onSubmit={onSubmit} className="grid-2">
+        <section className="card card-glow" style={{ display: 'grid', gap: '0.75rem' }}>
+          <div>
+            <div className="micro-label">Specimens</div>
+            <h2 style={{ fontWeight: 700, margin: '0.2rem 0 0', color: 'var(--cream)' }}>Whole slide upload</h2>
+          </div>
+          <p className="page-subtitle" style={{ margin: 0, fontSize: '0.86rem' }}>
+            Drag files into the zone or tap to browse. PNG/JPEG supported for pilot; production connects to your scanner pipeline.
+          </p>
 
-          <button onClick={onSubmit} disabled={!file || loading} className="btn-primary mt-5 w-full py-3">
-            {loading ? (
-              <>
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Analyzing…
-              </>
-            ) : isZip ? 'Analyze Batch' : 'Analyze Slide'}
-          </button>
+          <div className="drag-zone">
+            <input type="file" accept=".png,.jpg,.jpeg" multiple onChange={(e) => setFiles(Array.from(e.target.files || []))} />
+            <div style={{ fontWeight: 700, color: 'var(--cream)', marginBottom: 6 }}>Drop slides here</div>
+            <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>or click to select from disk</div>
+          </div>
 
-          {error && (
-            <div
-              className="mt-4 rounded-lg px-4 py-3 text-sm"
-              style={{
-                background: 'rgba(194,60,40,0.1)',
-                border: '1px solid rgba(194,60,40,0.25)',
-                color: '#f0a090'
-              }}
-            >
-              {error}
-            </div>
-          )}
-        </section>
-
-        {/* Preview panel */}
-        <section className="glass-card flex items-center justify-center p-4">
-          {preview && !isZip ? (
-            <img
-              src={preview}
-              alt="Slide preview"
-              className="max-h-80 w-full rounded-lg object-contain"
-            />
-          ) : (
-            <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ background: 'rgba(212,178,140,0.04)', border: '1px solid rgba(212,178,140,0.09)' }}
-              >
-                <svg
-                  className="h-6 w-6"
-                  style={{ color: '#7a6b59' }}
-                  fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor" strokeWidth={1.5}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18M21 15.75V5.625A2.625 2.625 0 0018.375 3H5.625A2.625 2.625 0 003 5.625v10.125" />
-                </svg>
-              </div>
-              <p className="text-sm" style={{ color: '#7a6b59' }}>
-                {isZip
-                  ? 'ZIP selected — results will open in Batch view.'
-                  : 'Preview appears here after upload.'}
+          <div style={{ display: 'grid', gap: '0.45rem' }}>
+            {previews.length ? (
+              previews.map((p, index) => (
+                <div key={index} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <img src={p.url} alt={p.file.name} style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border-subtle)' }} />
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.84rem' }}>{p.file.name}</div>
+                </div>
+              ))
+            ) : (
+              <p className="page-subtitle" style={{ margin: 0, fontSize: '0.86rem' }}>
+                No files selected — a demo fallback image will be used if you continue empty.
               </p>
-            </div>
-          )}
+            )}
+          </div>
+          {isSyncing ? <p className="page-subtitle" style={{ margin: 0 }}>Running backend analysis and syncing case…</p> : null}
         </section>
-      </div>
 
-      <MetricsGlossary
-        className="mt-8"
-        eyebrow="After you analyze"
-        headingId="analyze-metrics-heading"
-        lead="Results open on the next screen. Here is how to read each part—everything is decision-support for the pathologist, not a standalone diagnosis."
-      />
+        <section className="card" style={{ display: 'grid', gap: '0.75rem' }}>
+          <div>
+            <div className="micro-label">LIS context</div>
+            <h2 style={{ fontWeight: 700, margin: '0.2rem 0 0', color: 'var(--cream)' }}>Case metadata</h2>
+          </div>
+          <div className="grid-2">
+            <div>
+              <label className="label">Case ID</label>
+              <input className="input" value={form.caseId} onChange={(e) => setForm({ ...form, caseId: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Sample ID</label>
+              <input className="input" value={form.sampleId} onChange={(e) => setForm({ ...form, sampleId: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Tissue type</label>
+              <select className="select" value={form.tissueType} onChange={(e) => setForm({ ...form, tissueType: e.target.value })}>
+                {TISSUE_OPTIONS.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Stain / biomarker</label>
+              <select className="select" value={form.stainType} onChange={(e) => setForm({ ...form, stainType: e.target.value })}>
+                {STAIN_OPTIONS.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Scanner type</label>
+              <input className="input" value={form.scannerType} onChange={(e) => setForm({ ...form, scannerType: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Magnification</label>
+              <input className="input" value={form.magnification} onChange={(e) => setForm({ ...form, magnification: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Assigned reviewer</label>
+              <select className="select" value={form.assignedReviewer} onChange={(e) => setForm({ ...form, assignedReviewer: e.target.value })}>
+                {REVIEWERS.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Priority</label>
+              <select className="select" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
+                <option>Low</option>
+                <option>Normal</option>
+                <option>High</option>
+                <option>Urgent</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="label">Notes</label>
+            <textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+          {error ? <p style={{ color: 'var(--danger)', fontSize: '0.85rem', margin: 0 }}>{error}</p> : null}
+          <button type="submit" className="btn btn-primary" disabled={isSyncing}>
+            {isSyncing ? 'Analyzing…' : 'Create case & run analysis'}
+          </button>
+        </section>
+      </form>
     </div>
   )
 }

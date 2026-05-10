@@ -1,38 +1,55 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import Navbar from './components/Navbar'
-import CursorGlow from './components/CursorGlow'
+import { AppStateProvider, useAppState } from './context/AppStateContext'
+import { CaseProvider } from './context/CaseContext'
+import Sidebar from './components/Sidebar'
+import RoleGate from './components/RoleGate'
 import LandingPage from './pages/LandingPage'
+import DashboardPage from './pages/DashboardPage'
 import UploadPage from './pages/UploadPage'
-import ResultsPage from './pages/ResultsPage'
-import BatchPage from './pages/BatchPage'
-import CasePage from './pages/CasePage'
-import BenchmarkPage from './pages/BenchmarkPage'
-import AboutPage from './pages/AboutPage'
-import DemoPage from './pages/DemoPage'
+import CaseReviewPage from './pages/CaseReviewPage'
+import ReportsPage from './pages/ReportsPage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import ValidationPage from './pages/ValidationPage'
+import SettingsPage from './pages/SettingsPage'
+
+function ProtectedLayout() {
+  const { user } = useAppState()
+
+  if (!user) {
+    return <Navigate to="/" replace />
+  }
+
+  return (
+    <div className="app-shell">
+      <Sidebar />
+      <main className="app-content">
+        <RoleGate>
+          <Routes>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/upload" element={<UploadPage />} />
+            <Route path="/review-queue" element={<DashboardPage reviewQueueOnly />} />
+            <Route path="/cases/:id" element={<CaseReviewPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/validation" element={<ValidationPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </RoleGate>
+      </main>
+    </div>
+  )
+}
 
 export default function App() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden">
-      {/* Global mouse-tracking glow — eye candy layer */}
-      <CursorGlow />
-
-      {/* Content above cursor glow */}
-      <div className="relative z-10">
-        <Navbar />
-        <main>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/analyze" element={<UploadPage />} />
-            <Route path="/results" element={<ResultsPage />} />
-            <Route path="/batch" element={<BatchPage />} />
-            <Route path="/case" element={<CasePage />} />
-            <Route path="/benchmark" element={<BenchmarkPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/demo" element={<DemoPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
-    </div>
+    <AppStateProvider>
+      <CaseProvider>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/*" element={<ProtectedLayout />} />
+        </Routes>
+      </CaseProvider>
+    </AppStateProvider>
   )
 }

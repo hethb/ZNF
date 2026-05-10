@@ -1,0 +1,5 @@
+export const CASE_STATUSES=['Uploaded','AI Analyzed','Needs Review','Finalized','Exported']
+export const TISSUE_OPTIONS=['Colorectal','Breast','Lung','Prostate','Melanoma','Other']
+export const STAIN_OPTIONS=['HER2','PD-L1','Ki-67','ER','PR','p53','ZNF835','Other']
+export const REVIEWERS=['Dr. Patel','Dr. Nguyen','Dr. Rivera','Dr. Chen']
+export const OVERRIDE_OPTIONS=['AI score accepted','Tumor region corrected','Artifact excluded','Borderline intensity adjusted','Manual override','Other']

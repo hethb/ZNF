@@ -18,6 +18,8 @@ class PreprocessConfig:
     # Downscale before 224 model input and Grad-CAM. Huge clinical exports (multi‑MP) otherwise
     # make PIL resizes and heatmap→full-size blends take minutes and gigabytes of RAM.
     max_input_long_edge: int = 2048
+    # Grad-CAM PNG is for UI only; keep overlay small so CPU blend/encode stays sub-second.
+    gradcam_overlay_max_long_edge: int = 640
 
 
 def load_rgb_image(image_path: Path) -> Image.Image:

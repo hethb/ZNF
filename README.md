@@ -6,7 +6,7 @@ PathIQ is decision-support software for IHC: tissue context, intensity scoring, 
 
 **Origin story (not the product boundary):** the stack began with ZNF835 research, then generalized to **any biomarker**.
 
-**Business model, pricing test range, GTM, regulatory framing, and pathologist outreach tracker:** see **[BUSINESS.md](./BUSINESS.md)**.
+**Business model, pricing test range, GTM, regulatory framing, and pathologist outreach tracker:** see **[BUSINESS.md](./BUSINESS.md)**. For the design-partner sequence and YC-readiness gates, see **[docs/PILOT_PLAN.md](./docs/PILOT_PLAN.md)**.
 
 **Public data for a real demo:** see **[docs/PUBLIC_IHC_DATASETS.md](./docs/PUBLIC_IHC_DATASETS.md)** (includes TUPAC16/HER2 pointers). Ship a live demo before investor outreach: run the bootstrap script below, open **`/demo`**, then replace synthetic weights with a public IHC run.
 
@@ -24,6 +24,10 @@ python scripts/bootstrap_minimal_demo.py
 uvicorn backend.api:app --reload
 ```
 
+Or from the repo root (picks 3.12 / 3.11 / 3.10 automatically): `bash scripts/setup_backend_venv.sh`
+
+**Install error: “No matching distribution found for tensorflow”** — your venv is almost certainly **Python 3.13 or 3.14** (pip lines showing `cp313` / `cp314` mean that). TensorFlow has **no wheel** for those versions yet. **Delete `backend/.venv`**, install **Python 3.12**, and recreate the venv with **`python3.12 -m venv .venv`** (not plain `python3`). If you use Conda, `conda create -n pathiq python=3.12` avoids the `(base)` interpreter accidentally building a 3.14 venv.
+
 In another terminal:
 
 ```bash
@@ -32,6 +36,7 @@ cd frontend && npm install && npm run dev
 
 - API: `http://127.0.0.1:8000` (docs at `/docs`)
 - UI: `http://127.0.0.1:5173` — use **`/demo`** for four preloaded patches (no upload), or **`/analyze`** for your own JPG/PNG.
+- Pilot page: `http://127.0.0.1:5173/pilot` — summarizes the design-partner plan, success metrics, and claims discipline.
 
 `bootstrap_minimal_demo.py` builds a tiny synthetic dataset and trains `.keras` checkpoints so the app runs from a fresh clone. **This is demo infrastructure, not model validation.** Replace with a public HER2/IHC cohort before investor claims.
 
@@ -63,6 +68,7 @@ The linked [gist](https://gist.github.com/hethb/8dc94ff3fb3cc1ca911bd766000d5c7e
 - [ ] Train and ship **real** weights from a public IHC cohort (recommended first target: TUPAC16/HER2-style labels).
 - [ ] Manually review **20–30 Grad-CAM overlays** on real slides and verify activations are anatomically sensible.
 - [ ] Capture one pathologist usage signal (email/quote/LOI) and paste into `BUSINESS.md`.
+- [ ] Convert the first lab conversation into the scoped five-week pilot in `docs/PILOT_PLAN.md`.
 - [ ] Rename repo from `ZNF` to `pathiq` in GitHub settings before sharing investor links.
 
 ---

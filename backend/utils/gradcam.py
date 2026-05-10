@@ -62,6 +62,8 @@ def generate_gradcam_overlay_base64(
     cfg = PreprocessConfig()
     if max(original_image.size) > cfg.max_input_long_edge:
         original_image = cap_pil_long_edge(original_image, cfg.max_input_long_edge)
+    if max(original_image.size) > cfg.gradcam_overlay_max_long_edge:
+        original_image = cap_pil_long_edge(original_image, cfg.gradcam_overlay_max_long_edge)
     grad_model = get_or_build_grad_cam_submodel(model)
 
     with tf.GradientTape() as tape:

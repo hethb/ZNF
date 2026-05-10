@@ -41,7 +41,7 @@ export default function DemoPage() {
         const name = path.split('/').pop() || 'demo.png'
         const file = new File([blob], name, { type: blob.type || 'image/png' })
         const preview = URL.createObjectURL(blob)
-        const result = await analyzeImage(file)
+        const result = await analyzeImage(file, { includeGradcam: true, mcRuns: 3 })
         navigate('/results', { state: { result, preview } })
       } catch (e) {
         setErr(e?.response?.data?.detail || e?.message || 'Demo run failed.')

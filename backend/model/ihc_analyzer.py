@@ -157,17 +157,21 @@ class IHCAnalyzer:
         if self.tissue_model is None:
             raise RuntimeError("Tissue model is not loaded.")
         x = preprocess_pil_image(image)
-        pred = self.tissue_model.predict(x, verbose=0)[0]
+        pred = self.tissue_model(x, training=False).numpy()[0]
         idx = int(np.argmax(pred))
         return TISSUE_CLASSES[idx], float(pred[idx])
 
     def predict_intensity_with_uncertainty(
-        self, image: Image.Image, runs: int = 5
+        self,
+        image: Image.Image,
+        runs: int = 5,
+        *,
+        x_preprocessed: Optional[np.ndarray] = None,
     ) -> Tuple[int, float, float, np.ndarray]:
         if self.intensity_model is None:
             raise RuntimeError("Intensity model is not loaded.")
         runs = max(1, min(32, int(runs)))
-        x = preprocess_pil_image(image)
+        x = x_preprocessed if x_preprocessed is not None else preprocess_pil_image(image)
         preds: List[np.ndarray] = []
         for _ in range(runs):
             p = self.intensity_model(x, training=True).numpy()[0]
@@ -195,7 +199,7 @@ class IHCAnalyzer:
             raise RuntimeError("Intensity model is not loaded.")
 
         x = preprocess_pil_image(image)
-        tissue_probs = self.tissue_model.predict(x, verbose=0)[0]
+        tissue_probs = self.tissue_model(x, training=False).numpy()[0]
         top_idx = int(np.argmax(tissue_probs))
         top_conf = float(tissue_probs[top_idx])
         tissue_type = TISSUE_CLASSES[top_idx]
@@ -204,7 +208,7 @@ class IHCAnalyzer:
         # Always quantify stain on the patch (biomarker-agnostic lab workflow). Tissue class
         # is context for interpretation, not a hard block on scoring or Grad-CAM.
         score, confidence, std, mean_pred = self.predict_intensity_with_uncertainty(
-            image, runs=mc_runs
+            image, runs=mc_runs, x_preprocessed=x
         )
         probs = tuple(float(x) for x in mean_pred.tolist())
         stain_burden = float(

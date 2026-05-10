@@ -14,6 +14,8 @@ import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 from PIL import Image
 from pydantic import BaseModel, Field
 from sklearn.metrics import cohen_kappa_score, confusion_matrix
@@ -23,6 +25,21 @@ from backend.utils.gradcam import generate_gradcam_overlay_base64
 from backend.utils.preprocessing import PreprocessConfig, cap_pil_long_edge, preprocess_pil_image
 
 app = FastAPI(title="PathIQ API", version="0.1.0")
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Baseline security and compliance-oriented response headers (demo / pilot)."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,6 +47,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def _pathiq_startup() -> None:
+    from backend.pathiq_db import init_db, seed_demo_users_if_empty
+
+    init_db()
+    seed_demo_users_if_empty()
+
+
+from backend.workflow_api import router as workflow_router  # noqa: E402
+
+app.include_router(workflow_router)
 
 ANALYZER = IHCAnalyzer(
     intensity_model_path=Path("backend/model/artifacts/best_intensity_model.keras"),
@@ -39,8 +69,8 @@ ANALYZER = IHCAnalyzer(
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 DEFAULT_UNCERTAINTY_STD_THRESHOLD = 0.14
 DEFAULT_ENTROPY_NORM_THRESHOLD = 0.62
-# Fewer than 16 is much faster; still useful MC spread for triage. Lower if CPU-bound.
-DEFAULT_MC_DROPOUT_RUNS = 5
+# Fewer runs = faster CPU inference; 3 is a good default for interactive /analyze.
+DEFAULT_MC_DROPOUT_RUNS = 3
 FEEDBACK_CSV_PATH = Path("data/feedback/prediction_feedback.csv")
 AUDIT_CSV_PATH = Path("data/feedback/audit_log.csv")
 
@@ -49,6 +79,18 @@ def _validate_image_filename(filename: str) -> None:
     ext = Path(filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Invalid file type. Upload JPG or PNG.")
+
+
+def _parse_form_bool(value: Any, *, default: bool = True) -> bool:
+    """Multipart booleans often arrive as strings; accept common truthy/falsey forms."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    s = str(value).strip().lower()
+    if s in ("false", "0", "no", "off", ""):
+        return False
+    return True
 
 
 def _ensure_models_ready() -> None:
@@ -192,12 +234,14 @@ async def analyze(
     uncertainty_std_threshold: float = Form(DEFAULT_UNCERTAINTY_STD_THRESHOLD),
     entropy_norm_threshold: float = Form(DEFAULT_ENTROPY_NORM_THRESHOLD),
     mc_runs: int = Form(DEFAULT_MC_DROPOUT_RUNS),
+    include_gradcam: str = Form("true"),
 ) -> Dict[str, Any]:
     _ensure_models_ready()
     if not image.filename:
         raise HTTPException(status_code=400, detail="Missing filename.")
     _validate_image_filename(image.filename)
     mcr = max(1, min(32, int(mc_runs)))
+    want_gradcam = _parse_form_bool(include_gradcam, default=True)
 
     raw = await image.read()
     img = _open_image_from_bytes(raw)
@@ -210,16 +254,17 @@ async def analyze(
     )
 
     heatmap_base64 = ""
-    try:
-        preprocessed = preprocess_pil_image(img)
-        heatmap_base64 = generate_gradcam_overlay_base64(
-            ANALYZER.intensity_model,
-            preprocessed,
-            img,
-            class_idx=result.intensity_score,
-        )
-    except Exception:
-        heatmap_base64 = ""
+    if want_gradcam:
+        try:
+            preprocessed = preprocess_pil_image(img)
+            heatmap_base64 = generate_gradcam_overlay_base64(
+                ANALYZER.intensity_model,
+                preprocessed,
+                img,
+                class_idx=result.intensity_score,
+            )
+        except Exception:
+            heatmap_base64 = ""
 
     return {
         "tissue_type": result.tissue_type,
@@ -247,6 +292,7 @@ async def analyze(
         "inference": {
             "mc_dropout_runs": mcr,
             "max_input_long_edge": PreprocessConfig().max_input_long_edge,
+            "include_gradcam": want_gradcam,
         },
         "heatmap_base64": heatmap_base64,
     }

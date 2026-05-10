@@ -1,10 +1,22 @@
+# PathIQ backend — TensorFlow only ships wheels for specific Python versions.
+# Supported today: CPython 3.10, 3.11, or 3.12 (check with: python -c "import sys; print(sys.version)").
+# Python 3.13 / 3.14 (you may see "cp313" / "cp314" in pip download names) will NOT install tensorflow.
+#
+# Fix: remove the old venv and recreate with 3.12, then pip install again:
+#   rm -rf .venv
+#   brew install python@3.12
+#   /opt/homebrew/opt/python@3.12/bin/python3.12 -m venv .venv   # Apple Silicon Homebrew path
+#   source .venv/bin/activate && python -V && pip install -r requirements.txt
 fastapi
 uvicorn[standard]
 python-multipart
 numpy
 pillow
-tensorflow
+tensorflow>=2.15.0,<2.20.0
 scikit-learn
 matplotlib
 seaborn
 pandas
+python-jose[cryptography]
+bcrypt>=4.0.1
+reportlab
