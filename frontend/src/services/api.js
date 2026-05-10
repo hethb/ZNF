@@ -110,8 +110,28 @@ export const workflowLogin = async (username, password) => {
   return data
 }
 
+export const workflowSignup = async ({ username, password, displayName, role }) => {
+  const { data } = await api.post('/workflow/auth/signup', {
+    username,
+    password,
+    displayName,
+    role
+  })
+  return data
+}
+
+export const workflowAuthConfig = async () => {
+  const { data } = await api.get('/workflow/auth/config')
+  return data
+}
+
 export const workflowMe = async () => {
   const { data } = await api.get('/workflow/auth/me')
+  return data
+}
+
+export const workflowMyStats = async () => {
+  const { data } = await api.get('/workflow/me/stats')
   return data
 }
 

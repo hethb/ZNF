@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react'
-import { setAuthToken, workflowLogin, workflowRbacRoutes } from '../services/api'
+import { setAuthToken, workflowLogin, workflowRbacRoutes, workflowSignup } from '../services/api'
 
 const AppStateContext = createContext(null)
 
@@ -42,8 +42,7 @@ export function AppStateProvider({ children }) {
     localStorage.setItem(SESSION_KEY, JSON.stringify(next))
   }
 
-  const loginWithServer = async (username, password) => {
-    const data = await workflowLogin(username, password)
+  const finalizeServerSession = async (data) => {
     const token = data.access_token
     setAuthToken(token)
     setAccessTokenState(token)
@@ -69,6 +68,16 @@ export function AppStateProvider({ children }) {
     return next
   }
 
+  const loginWithServer = async (username, password) => {
+    const data = await workflowLogin(username, password)
+    return finalizeServerSession(data)
+  }
+
+  const signupWithServer = async (payload) => {
+    const data = await workflowSignup(payload)
+    return finalizeServerSession(data)
+  }
+
   const logout = () => {
     setUser(null)
     setAuthToken(null)
@@ -92,6 +101,7 @@ export function AppStateProvider({ children }) {
       user,
       loginOffline,
       loginWithServer,
+      signupWithServer,
       logout,
       settings,
       updateSettings,

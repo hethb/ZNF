@@ -1,9 +1,19 @@
 # Render Blueprint: https://render.com/docs/blueprint-spec
 #
+# Provisions:
+#   - pathiq-api : the FastAPI service (Docker)
+#   - pathiq-db  : a Postgres instance for users, cases, and the audit log.
+#                  DATABASE_URL is wired into the API automatically via fromDatabase.
+#
 # After first deploy, set PATHIQ_CORS_ORIGINS in the dashboard to your frontend
-# origin (e.g. https://your-app.vercel.app). On the free tier, SQLite under the
-# default path is ephemeral across redeploys; attach a disk on a paid plan and
-# set PATHIQ_DB_PATH to a file under the mount (see docs/DEPLOYMENT.md).
+# origin (e.g. https://your-app.vercel.app). Optionally set PATHIQ_ALLOW_SIGNUP
+# to "false" to disable public sign-up. See docs/DEPLOYMENT.md.
+
+databases:
+  - name: pathiq-db
+    plan: free
+    region: oregon
+    postgresMajorVersion: "16"
 
 services:
   - type: web
@@ -17,3 +27,9 @@ services:
     envVars:
       - key: PATHIQ_CORS_ORIGINS
         sync: false
+      - key: PATHIQ_ALLOW_SIGNUP
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pathiq-db
+          property: connectionString

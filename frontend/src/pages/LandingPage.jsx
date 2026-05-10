@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
+import { workflowAuthConfig } from '../services/api'
+
+const DEFAULT_SIGNUP_ROLES = ['Researcher', 'Pathologist', 'Technician']
 
 const features = [
   {
@@ -61,13 +64,42 @@ const features = [
 
 export default function LandingPage() {
   const navigate = useNavigate()
-  const { user, loginOffline, loginWithServer } = useAppState()
+  const { user, loginOffline, loginWithServer, signupWithServer } = useAppState()
   const [name, setName] = useState('')
   const [role, setRole] = useState('Pathologist')
   const [username, setUsername] = useState('pathologist')
   const [password, setPassword] = useState('demo123')
   const [serverError, setServerError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [authTab, setAuthTab] = useState('signin')
+  const [signupForm, setSignupForm] = useState({
+    username: '',
+    password: '',
+    displayName: '',
+    role: DEFAULT_SIGNUP_ROLES[0]
+  })
+  const [authConfig, setAuthConfig] = useState({
+    signup_enabled: true,
+    signup_roles: DEFAULT_SIGNUP_ROLES,
+    min_password_length: 8
+  })
+
+  useEffect(() => {
+    let cancelled = false
+    workflowAuthConfig()
+      .then((cfg) => {
+        if (cancelled) return
+        setAuthConfig({
+          signup_enabled: cfg?.signup_enabled !== false,
+          signup_roles: Array.isArray(cfg?.signup_roles) && cfg.signup_roles.length ? cfg.signup_roles : DEFAULT_SIGNUP_ROLES,
+          min_password_length: cfg?.min_password_length || 8
+        })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const goDashboard = () => navigate('/dashboard')
 
@@ -84,6 +116,27 @@ export default function LandingPage() {
       goDashboard()
     } catch (err) {
       setServerError(err?.response?.data?.detail || err?.message || 'Sign-in failed. Is the API running?')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateSignupField = (key, value) => setSignupForm((prev) => ({ ...prev, [key]: value }))
+
+  const onSignup = async (e) => {
+    e.preventDefault()
+    setServerError('')
+    setLoading(true)
+    try {
+      await signupWithServer({
+        username: signupForm.username.trim().toLowerCase(),
+        password: signupForm.password,
+        displayName: signupForm.displayName.trim() || signupForm.username.trim(),
+        role: signupForm.role
+      })
+      goDashboard()
+    } catch (err) {
+      setServerError(err?.response?.data?.detail || err?.message || 'Could not create your account.')
     } finally {
       setLoading(false)
     }
@@ -211,27 +264,132 @@ export default function LandingPage() {
 
         {!user ? (
           <div id="workflow-access" className="grid-2" style={{ marginTop: '2.25rem', alignItems: 'start', scrollMarginTop: 24 }}>
-            <form className="card" onSubmit={onServerLogin} style={{ display: 'grid', gap: '0.75rem' }}>
+            <section className="card" style={{ display: 'grid', gap: '0.75rem' }}>
               <div>
                 <div className="micro-label">Secure access</div>
-                <h3 style={{ fontWeight: 700, margin: '0.2rem 0 0', color: 'var(--cream)' }}>Sign in (API + RBAC)</h3>
+                <h3 style={{ fontWeight: 700, margin: '0.2rem 0 0', color: 'var(--cream)' }}>
+                  {authTab === 'signin' ? 'Sign in (API + RBAC)' : 'Create your account'}
+                </h3>
               </div>
-              <p className="page-subtitle" style={{ fontSize: '0.86rem', margin: 0 }}>
-                Demo accounts: <code>pathologist</code>/<code>demo123</code>, <code>admin</code>/<code>admin123</code>, <code>tech</code>/<code>demo123</code>, etc.
-              </p>
-              <div>
-                <label className="label">Username</label>
-                <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
-              </div>
-              <div>
-                <label className="label">Password</label>
-                <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
-              </div>
-              {serverError ? <p style={{ color: 'var(--danger)', fontSize: '0.85rem', margin: 0 }}>{serverError}</p> : null}
-              <button className="btn btn-primary" type="submit" disabled={loading}>
-                {loading ? 'Signing in…' : 'Sign in & sync cases'}
-              </button>
-            </form>
+              {authConfig.signup_enabled ? (
+                <div role="tablist" aria-label="Account access" style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, border: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.25)', alignSelf: 'start' }}>
+                  {[
+                    { id: 'signin', label: 'Sign in' },
+                    { id: 'signup', label: 'Create account' }
+                  ].map((tab) => {
+                    const active = authTab === tab.id
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => {
+                          setAuthTab(tab.id)
+                          setServerError('')
+                        }}
+                        style={{
+                          appearance: 'none',
+                          border: 'none',
+                          padding: '0.35rem 0.85rem',
+                          borderRadius: 999,
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: active ? 'var(--amber)' : 'transparent',
+                          color: active ? '#1c1a18' : 'var(--text-muted)'
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
+
+              {authTab === 'signin' ? (
+                <form onSubmit={onServerLogin} style={{ display: 'grid', gap: '0.75rem' }}>
+                  <p className="page-subtitle" style={{ fontSize: '0.86rem', margin: 0 }}>
+                    Demo accounts: <code>pathologist</code>/<code>demo123</code>, <code>admin</code>/<code>admin123</code>, <code>tech</code>/<code>demo123</code>, etc.
+                  </p>
+                  <div>
+                    <label className="label">Username</label>
+                    <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+                  </div>
+                  <div>
+                    <label className="label">Password</label>
+                    <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+                  </div>
+                  {serverError ? <p style={{ color: 'var(--danger)', fontSize: '0.85rem', margin: 0 }}>{serverError}</p> : null}
+                  <button className="btn btn-primary" type="submit" disabled={loading}>
+                    {loading ? 'Signing in…' : 'Sign in & sync cases'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={onSignup} style={{ display: 'grid', gap: '0.75rem' }}>
+                  <p className="page-subtitle" style={{ fontSize: '0.86rem', margin: 0 }}>
+                    Your activity (logins, cases created, edits) is tracked privately to your account so you can see your own throughput on the dashboard.
+                  </p>
+                  <div className="grid-2">
+                    <div>
+                      <label className="label">Username</label>
+                      <input
+                        className="input"
+                        value={signupForm.username}
+                        onChange={(e) => updateSignupField('username', e.target.value)}
+                        autoComplete="username"
+                        placeholder="lowercase letters, digits, . _ -"
+                        minLength={3}
+                        maxLength={32}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Display name</label>
+                      <input
+                        className="input"
+                        value={signupForm.displayName}
+                        onChange={(e) => updateSignupField('displayName', e.target.value)}
+                        placeholder="Dr. Patel"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid-2">
+                    <div>
+                      <label className="label">Password</label>
+                      <input
+                        className="input"
+                        type="password"
+                        value={signupForm.password}
+                        onChange={(e) => updateSignupField('password', e.target.value)}
+                        autoComplete="new-password"
+                        minLength={authConfig.min_password_length}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Role</label>
+                      <select
+                        className="select"
+                        value={signupForm.role}
+                        onChange={(e) => updateSignupField('role', e.target.value)}
+                      >
+                        {(authConfig.signup_roles || DEFAULT_SIGNUP_ROLES).map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <p className="page-subtitle" style={{ fontSize: '0.78rem', margin: 0, color: 'var(--text-muted)' }}>
+                    Admin and Lab Director roles are invite-only. Contact your administrator if you need elevated access.
+                  </p>
+                  {serverError ? <p style={{ color: 'var(--danger)', fontSize: '0.85rem', margin: 0 }}>{serverError}</p> : null}
+                  <button className="btn btn-primary" type="submit" disabled={loading}>
+                    {loading ? 'Creating account…' : 'Create account & sign in'}
+                  </button>
+                </form>
+              )}
+            </section>
 
             <section className="card" style={{ display: 'grid', gap: '0.75rem' }}>
               <div>

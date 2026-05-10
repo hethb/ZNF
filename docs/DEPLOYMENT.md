@@ -10,7 +10,9 @@ PathIQ is two pieces: a **static React app** (Vite build) and a **Python API** (
 |--------|----------|---------|
 | **Frontend build** | `VITE_API_URL` | Public base URL of the API, e.g. `https://pathiq-api.onrender.com` (no trailing slash). |
 | **API** | `PATHIQ_CORS_ORIGINS` | Comma-separated browser origins allowed to call the API, e.g. `https://pathiq.vercel.app`. If unset, the API allows `*` without credentials (fine for local dev; set this in production). |
-| **API** | `PATHIQ_DB_PATH` | SQLite file path for workflow users/cases. Default `data/pathiq_workflow.db`. On Render, point at a path **on a persistent disk** (see below). |
+| **API** | `DATABASE_URL` | Postgres connection string for users / cases / audit log. **Required in production.** Render's Blueprint wires this in automatically from the `pathiq-db` instance. Accepts both `postgres://...` and `postgresql://...`. |
+| **API** | `PATHIQ_DB_PATH` | SQLite file path used **only** when `DATABASE_URL` is unset (local dev). Default `data/pathiq_workflow.db`. |
+| **API** | `PATHIQ_ALLOW_SIGNUP` | `true` (default) lets anyone create an account from the landing page. Set to `false` to lock down sign-up (existing users keep working). |
 
 JWT and workflow features use the same API origin as `VITE_API_URL`.
 
@@ -26,9 +28,11 @@ The repo root **Dockerfile** builds the backend. It does **not** include `backen
 ### Option A — [Render](https://render.com)
 
 1. New **Blueprint** → connect this GitHub repo → Render reads `render.yaml`.
-2. In the dashboard, set **`PATHIQ_CORS_ORIGINS`** to your frontend origin(s), e.g. `https://your-app.vercel.app`.
-3. On the **free** tier, SQLite under the default path is **ephemeral** (data resets when the instance is redeployed or cycled). For durable workflow DBs, use a paid plan with a **persistent disk** and set **`PATHIQ_DB_PATH`** to a file under that mount.
-4. After deploy, open `https://<service>.onrender.com/docs` and try `GET /health`.
+2. The Blueprint provisions **two** resources: the `pathiq-api` web service and a `pathiq-db` Postgres instance. `DATABASE_URL` is wired into the API automatically — you don't need to copy it manually.
+3. In the dashboard, set **`PATHIQ_CORS_ORIGINS`** to your frontend origin(s), e.g. `https://your-app.vercel.app`. Optionally flip **`PATHIQ_ALLOW_SIGNUP`** to `false` to disable public sign-up.
+4. After deploy, open `https://<service>.onrender.com/docs` and try `GET /health`. The API auto-creates the `users`, `cases`, and `compliance_audit` tables on first boot and seeds the demo accounts.
+
+> Render's free Postgres tier is intended for hobby/demo workloads (limited storage, expires after 90 days unless you upgrade). Plenty for a pilot demo, but plan to upgrade or back up before relying on it.
 
 **Optional — enable `/analyze` in the cloud**
 
@@ -44,8 +48,19 @@ The repo root **Dockerfile** builds the backend. It does **not** include `backen
 
 ### Option B — Any Docker host (Fly.io, Railway, ECS, a VPS)
 
+With Postgres (recommended in production):
+
 ```bash
 docker build -t pathiq-api .
+docker run -p 8000:8000 \
+  -e PATHIQ_CORS_ORIGINS=https://your-frontend.example.com \
+  -e DATABASE_URL=postgresql://user:pass@host:5432/pathiq \
+  pathiq-api
+```
+
+Or fall back to SQLite on a mounted volume (single-instance only — concurrent writers don't scale):
+
+```bash
 docker run -p 8000:8000 \
   -e PATHIQ_CORS_ORIGINS=https://your-frontend.example.com \
   -e PATHIQ_DB_PATH=/data/pathiq_workflow.db \
@@ -114,6 +129,18 @@ Render **free/starter** web services spin down when idle; first request can be s
 
 ---
 
-## 6. Security note
+## 6. User accounts and stats
+
+The API exposes:
+
+- **`POST /workflow/auth/signup`** — public sign-up. Username + password + display name + role. Roles allowed at sign-up: `Researcher`, `Pathologist`, `Technician`. `Admin` and `Lab Director` stay invite-only (promote a user manually in Postgres or via a future admin endpoint).
+- **`POST /workflow/auth/login`** — JWT login.
+- **`GET /workflow/me/stats`** — returns the signed-in user's roll-up: sign-ins, cases created/edited/deleted, last-active timestamp, and the 10 most-recent audit rows. The frontend dashboard renders this as the "Your activity" card.
+
+Per-user case scoping: `Admin` and `Lab Director` see every case; everyone else only sees cases they own (`owner_username` = their username). Cases created from offline / sandbox mode aren't synced to the server and stay browser-local.
+
+Disable public sign-up with `PATHIQ_ALLOW_SIGNUP=false` once you've onboarded your users.
+
+## 7. Security note
 
 Demo users (e.g. from `seed_demo_users_if_empty`) are for pilots only. Change passwords, restrict sign-up, or integrate your IdP before any sensitive data.

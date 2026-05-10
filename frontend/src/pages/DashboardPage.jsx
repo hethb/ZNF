@@ -1,7 +1,20 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useCases } from '../context/CaseContext'
+import { useAppState } from '../context/AppStateContext'
+import { workflowMyStats } from '../services/api'
 import MetricCard from '../components/MetricCard'
 import CaseTable from '../components/CaseTable'
+
+function formatRelativeTime(iso) {
+  if (!iso) return '—'
+  const then = new Date(iso).getTime()
+  if (!Number.isFinite(then)) return '—'
+  const diffSec = Math.max(0, Math.round((Date.now() - then) / 1000))
+  if (diffSec < 60) return 'just now'
+  if (diffSec < 3600) return `${Math.round(diffSec / 60)}m ago`
+  if (diffSec < 86400) return `${Math.round(diffSec / 3600)}h ago`
+  return `${Math.round(diffSec / 86400)}d ago`
+}
 
 function getAgreementRate(cases) {
   const reviewed = cases.filter((item) => item.finalReview)
@@ -12,6 +25,8 @@ function getAgreementRate(cases) {
 
 export default function DashboardPage({ reviewQueueOnly = false }) {
   const { cases } = useCases()
+  const { authMode, user } = useAppState()
+  const [myStats, setMyStats] = useState(null)
   const [filters, setFilters] = useState({
     status: '',
     tissueType: '',
@@ -69,6 +84,24 @@ export default function DashboardPage({ reviewQueueOnly = false }) {
 
   const setFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }))
 
+  useEffect(() => {
+    if (authMode !== 'server' || !user?.username) {
+      setMyStats(null)
+      return undefined
+    }
+    let cancelled = false
+    workflowMyStats()
+      .then((data) => {
+        if (!cancelled) setMyStats(data)
+      })
+      .catch(() => {
+        if (!cancelled) setMyStats(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [authMode, user?.username, cases.length])
+
   return (
     <div style={{ display: 'grid', gap: '1.15rem' }}>
       <header>
@@ -87,6 +120,44 @@ export default function DashboardPage({ reviewQueueOnly = false }) {
         <MetricCard title="Average confidence" value={metrics.avgConfidence} hint="Across AI pre-scores" />
         <MetricCard title="Time saved" value={metrics.timeSaved} hint="Estimated review acceleration" />
       </section>
+
+      {myStats ? (
+        <section className="card" style={{ display: 'grid', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <div className="micro-label">Your activity</div>
+              <div style={{ fontWeight: 700, color: 'var(--cream)' }}>
+                {user?.name || user?.username}
+                <span style={{ marginLeft: 8, color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.85rem' }}>
+                  · {user?.role}
+                </span>
+              </div>
+            </div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+              Last active {formatRelativeTime(myStats.lastActive)}
+            </div>
+          </div>
+          <div className="grid-metrics-6">
+            <MetricCard title="Sign-ins" value={myStats.logins} hint="Includes initial sign-up" />
+            <MetricCard title="Cases created" value={myStats.casesCreated} hint="Saves you initiated" />
+            <MetricCard title="Cases edited" value={myStats.casesEdited} hint="Patches applied" />
+            <MetricCard title="Cases deleted" value={myStats.casesDeleted} hint="Admin / Lab Director only" />
+            <MetricCard title="Total actions" value={myStats.totalActions} hint="Across the audit log" />
+            <MetricCard title="Recent" value={myStats.recent?.length || 0} hint="Last 10 audit rows" />
+          </div>
+          {myStats.recent?.length ? (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6, fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+              {myStats.recent.slice(0, 5).map((row, idx) => (
+                <li key={`${row.ts}-${idx}`} style={{ display: 'flex', gap: 12 }}>
+                  <span style={{ color: 'var(--cream)', minWidth: 110 }}>{row.action}</span>
+                  <span style={{ flex: 1 }}>{row.details || '—'}</span>
+                  <span>{formatRelativeTime(row.ts)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="card" style={{ display: 'grid', gap: '0.75rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.5rem' }}>
