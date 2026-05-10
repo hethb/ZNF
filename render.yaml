@@ -1,0 +1,19 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+#
+# After first deploy, set PATHIQ_CORS_ORIGINS in the dashboard to your frontend
+# origin (e.g. https://your-app.vercel.app). On the free tier, SQLite under the
+# default path is ephemeral across redeploys; attach a disk on a paid plan and
+# set PATHIQ_DB_PATH to a file under the mount (see docs/DEPLOYMENT.md).
+
+services:
+  - type: web
+    name: pathiq-api
+    runtime: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PATHIQ_CORS_ORIGINS
+        sync: false
