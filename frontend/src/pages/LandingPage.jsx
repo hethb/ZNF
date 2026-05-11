@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
 import { workflowAuthConfig } from '../services/api'
+import CursorGlow from '../components/CursorGlow'
+import ParallaxOrb from '../components/ParallaxOrb'
+import TiltCard from '../components/TiltCard'
 
 const DEFAULT_SIGNUP_ROLES = ['Researcher', 'Pathologist', 'Technician']
 
@@ -239,6 +242,8 @@ export default function LandingPage() {
 
   return (
     <div className="landing-page">
+      <CursorGlow />
+
       {/* —— Sticky top nav —— */}
       <nav className="landing-nav">
         <div className="landing-nav-inner">
@@ -275,9 +280,38 @@ export default function LandingPage() {
       <section id="top" className="hero" style={{ minHeight: 'auto', padding: '3.25rem 1.5rem 3.25rem' }}>
         <div className="hero-grid-bg" />
         <div className="hero-blobs" aria-hidden>
-          <div className="hero-blob" style={{ width: 420, height: 420, left: '-8%', top: '10%', background: 'rgba(212, 107, 59, 0.35)' }} />
-          <div className="hero-blob" style={{ width: 360, height: 360, right: '-5%', top: '22%', background: 'rgba(196, 135, 90, 0.28)' }} />
-          <div className="hero-blob" style={{ width: 300, height: 300, left: '35%', bottom: '-5%', background: 'rgba(139, 111, 168, 0.18)' }} />
+          <ParallaxOrb
+            size={420}
+            color="rgba(212, 107, 59, 0.35)"
+            blur={90}
+            speed={26}
+            position={{ left: '-8%', top: '10%' }}
+          />
+          <ParallaxOrb
+            size={360}
+            color="rgba(196, 135, 90, 0.28)"
+            blur={80}
+            speed={18}
+            invertX
+            position={{ right: '-5%', top: '22%' }}
+          />
+          <ParallaxOrb
+            size={300}
+            color="rgba(139, 111, 168, 0.18)"
+            blur={70}
+            speed={32}
+            invertY
+            position={{ left: '35%', bottom: '-5%' }}
+          />
+          <ParallaxOrb
+            size={220}
+            color="rgba(212, 165, 116, 0.22)"
+            blur={64}
+            speed={14}
+            invertX
+            invertY
+            position={{ right: '20%', bottom: '15%' }}
+          />
         </div>
 
         <div className="hero-inner">
@@ -311,7 +345,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="card card-glow" style={{ position: 'relative', overflow: 'hidden', minHeight: 280 }}>
+            <TiltCard className="card card-glow" maxTilt={5} style={{ position: 'relative', overflow: 'hidden', minHeight: 280 }}>
               <svg viewBox="0 0 400 320" width="100%" height="auto" style={{ display: 'block', opacity: 0.95 }} aria-hidden>
                 <defs>
                   <radialGradient id="tissueGlow" cx="50%" cy="40%" r="60%">
@@ -360,7 +394,7 @@ export default function LandingPage() {
                   Uncertainty overlay
                 </span>
               </div>
-            </div>
+            </TiltCard>
           </div>
 
           {/* Stat strip */}
@@ -433,7 +467,7 @@ export default function LandingPage() {
 
         {/* Product preview tile */}
         <div className="landing-product-preview">
-          <div className="landing-preview-card">
+          <TiltCard className="landing-preview-card" maxTilt={4}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <div className="micro-label">Live result</div>
               <span className="badge badge-conf-mod">Needs review</span>
@@ -454,8 +488,8 @@ export default function LandingPage() {
             <div className="landing-preview-row">
               <span>Tissue context</span><span>tumor · 91%</span>
             </div>
-          </div>
-          <div className="landing-preview-card">
+          </TiltCard>
+          <TiltCard className="landing-preview-card" maxTilt={4}>
             <div className="micro-label">Class distribution (MC mean)</div>
             {[
               { label: '0', pct: 6 },
@@ -474,7 +508,7 @@ export default function LandingPage() {
             <div style={{ marginTop: 4, fontSize: '0.78rem', color: 'var(--text-dim)', lineHeight: 1.5 }}>
               Why this tier: the 2+ head dominates at 58% with non-trivial 1+/3+ mass — flagged for human review.
             </div>
-          </div>
+          </TiltCard>
         </div>
       </section>
 
@@ -487,7 +521,7 @@ export default function LandingPage() {
         <h2 className="landing-section-title">One product, three jobs to be done.</h2>
         <div className="landing-audience-grid">
           {audiences.map((a) => (
-            <article key={a.role} className="landing-audience-card">
+            <TiltCard key={a.role} as="article" className="landing-audience-card" maxTilt={5}>
               <div className="landing-audience-role">
                 <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />
                 {a.role}
@@ -496,7 +530,7 @@ export default function LandingPage() {
               <ul className="landing-audience-list">
                 {a.points.map((p) => <li key={p}>{p}</li>)}
               </ul>
-            </article>
+            </TiltCard>
           ))}
         </div>
       </section>

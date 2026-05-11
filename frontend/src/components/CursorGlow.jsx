@@ -1,36 +1,28 @@
-import { useEffect } from 'react'
-
-const X = '--pathiq-cursor-x'
-const Y = '--pathiq-cursor-y'
-
 /**
- * Global cursor glow — earthy amber radial gradient that follows the mouse.
- * Uses CSS variables so mousemove does not trigger React re-renders (previous
- * useState-per-move made every navigation and interaction feel sluggish).
+ * Soft amber spotlight that follows the cursor. Reads global CSS variables
+ * set by MotionProvider — does not register its own listener, so multiple
+ * mounts are safe and have zero React-runtime cost.
+ *
+ * Hidden automatically when MotionProvider has set data-pathiq-motion="off"
+ * (touch devices, prefers-reduced-motion).
  */
 export default function CursorGlow() {
-  useEffect(() => {
-    const root = document.documentElement
-    const onMove = (e) => {
-      root.style.setProperty(X, `${e.clientX}px`)
-      root.style.setProperty(Y, `${e.clientY}px`)
-    }
-    window.addEventListener('mousemove', onMove, { passive: true })
-    return () => window.removeEventListener('mousemove', onMove)
-  }, [])
-
   return (
     <div
       aria-hidden="true"
+      className="cursor-glow"
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 2,
+        zIndex: 1,
         pointerEvents: 'none',
-        background: `radial-gradient(640px circle at var(${X}, -1000px) var(${Y}, -1000px),
-          rgba(194, 98, 26, 0.045),
-          rgba(138, 153, 98, 0.03) 42%,
-          transparent 58%)`
+        background:
+          'radial-gradient(580px circle at var(--cursor-x, -1000px) var(--cursor-y, -1000px),' +
+          ' rgba(212, 107, 59, 0.085),' +
+          ' rgba(196, 135, 90, 0.04) 38%,' +
+          ' transparent 62%)',
+        mixBlendMode: 'screen',
+        transition: 'opacity 250ms ease'
       }}
     />
   )

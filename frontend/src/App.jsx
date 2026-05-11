@@ -3,6 +3,7 @@ import { AppStateProvider, useAppState } from './context/AppStateContext'
 import { CaseProvider } from './context/CaseContext'
 import Sidebar from './components/Sidebar'
 import RoleGate from './components/RoleGate'
+import MotionProvider from './components/MotionProvider'
 import LandingPage from './pages/LandingPage'
 import DashboardPage from './pages/DashboardPage'
 import UploadPage from './pages/UploadPage'
@@ -45,6 +46,7 @@ export default function App() {
   return (
     <AppStateProvider>
       <CaseProvider>
+        <MotionProvider />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/*" element={<ProtectedLayout />} />
